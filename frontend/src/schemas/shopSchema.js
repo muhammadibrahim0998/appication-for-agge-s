@@ -10,13 +10,11 @@ export const shopSchema = z.object({
     .optional()
     .or(z.literal('')),
   contactNumber: z.string()
-    .regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format" })
+    .regex(/^\+?[0-9\s\-()]{1,20}$/, { message: "Invalid phone number format" })
     .optional()
     .or(z.literal('')),
   adminUsername: z.string()
-    .min(3, { message: "Admin username must be at least 3 characters" })
-    .max(30, { message: "Username too long" })
-    .regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain alphanumeric and underscores" })
+    .email({ message: "Please enter a valid email address" })
     .optional(), // Optional for updates
   adminPassword: z.string()
     .min(6, { message: "Password must be at least 6 characters" })

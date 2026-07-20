@@ -67,13 +67,13 @@ export function LoginView() {
             <div className="space-y-3">
               {/* Identification */}
               <div className="space-y-1">
-                <label className="text-[8px] font-black text-[var(--color-text-muted)] uppercase tracking-widest pl-1">Username</label>
+                <label className="text-[8px] font-black text-[var(--color-text-muted)] uppercase tracking-widest pl-1">Email</label>
                 <div className="relative group">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-primary)] transition-colors" />
                   <input
                     {...register('username')}
-                    type="text"
-                    placeholder="Username"
+                    type="email"
+                    placeholder="name@example.com"
                     className={`w-full bg-[var(--color-surface-base)]/50 border ${errors.username ? 'border-[var(--color-danger)]/40' : 'border-[var(--color-border-subtle)]'} focus:border-[var(--color-primary)]/40 rounded-xl py-3 pl-11 pr-4 text-xs font-bold text-[var(--color-text-primary)] outline-none transition-all placeholder:text-[var(--color-text-muted)]`}
                   />
                 </div>

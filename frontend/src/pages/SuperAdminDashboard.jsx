@@ -289,9 +289,10 @@ export function SuperAdminDashboard() {
                                     </div>
                                     <input
                                         {...register('adminUsername')}
+                                        type="email"
                                         autoComplete="off"
                                         className={`w-full px-5 py-3 rounded-xl border ${errors.adminUsername ? 'border-rose-500/50 bg-rose-50/50' : 'border-zinc-100 bg-zinc-50'} text-zinc-900 text-sm font-bold outline-none focus:bg-white focus:border-green-500/40 transition-all`}
-                                        placeholder="username"
+                                        placeholder="email@example.com"
                                     />
                                     <input
                                         {...register('adminPassword')}

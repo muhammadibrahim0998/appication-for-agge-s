@@ -24,7 +24,7 @@ export const memberSchema = z.object({
   }).optional(),
 
   phoneNumber: z.string()
-    .regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid international signal format (E.164)" })
+    .regex(/^\+?[0-9\s\-()]{1,20}$/, { message: "Invalid international signal format (E.164)" })
     .optional()
     .or(z.literal(''))
 });

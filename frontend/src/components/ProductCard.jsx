@@ -32,6 +32,7 @@ export function ProductCard({ product, onEdit, onDelete, onView }) {
   const expiryDate = product.expiryDate ? new Date(product.expiryDate) : null;
   const isExpired = expiryDate && expiryDate < today;
   const isNearExpiry = expiryDate && !isExpired && (expiryDate - today) < (15 * 24 * 60 * 60 * 1000);
+  const status = getStockStatus(product.stock, product.minStock);
 
   const formatDate = (date) => {
     if (!date) return 'N/A';

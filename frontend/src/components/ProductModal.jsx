@@ -71,6 +71,8 @@ export function ProductModal({ isOpen, onClose, onSave, product, mode, categorie
   const onSubmit = (data) => {
     onSave({
       ...data,
+      category: data.category || currentCategory || "",
+      images: images,
       price: parseFloat(data.price) || 0,
       stock: parseFloat(data.stock) || 0,
       minStock: parseFloat(data.minStock) || 0,
@@ -156,12 +158,14 @@ export function ProductModal({ isOpen, onClose, onSave, product, mode, categorie
                     isDisabled={mode === 'view'}
                     options={categories.filter(c => c !== "All").map(c => ({ value: c, label: c }))}
                     onChange={(val) => field.onChange(val ? val.value : "")}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') e.preventDefault();
+                    onCreateOption={(inputValue) => {
+                      field.onChange(inputValue);
                     }}
                     value={field.value ? { label: field.value, value: field.value } : null}
-                    placeholder="Select or create..."
+                    placeholder="Select or type to create..."
                     classNamePrefix="nexus-select"
+                    formatCreateLabel={(inputValue) => `Create category: "${inputValue}"`}
+                    noOptionsMessage={() => "Type to create a new category"}
                     styles={{
                       control: (base, state) => ({
                         ...base,
@@ -187,7 +191,15 @@ export function ProductModal({ isOpen, onClose, onSave, product, mode, categorie
                         color: 'var(--color-text-primary)',
                         fontSize: '14px',
                         cursor: 'pointer'
-                      })
+                      }),
+                      singleValue: (base) => ({
+                        ...base,
+                        color: 'var(--color-text-primary)',
+                      }),
+                      input: (base) => ({
+                        ...base,
+                        color: 'var(--color-text-primary)',
+                      }),
                     }}
                   />
                 )}
