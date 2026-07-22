@@ -17,6 +17,8 @@ import authRoutes from './routes/auth.js';
 import settingsRoutes from './routes/settings.js';
 import shopsRoutes from './routes/shops.js';
 import updatesRoutes from './routes/updates.js';
+import catalogRoutes from './routes/catalog.js';
+import customersRoutes from './routes/customers.js';
 
 dotenv.config();
 
@@ -71,6 +73,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/shops', shopsRoutes);
 app.use('/api/updates', updatesRoutes);
+app.use('/api/catalog', catalogRoutes);
+app.use('/api/customers', customersRoutes);
 
 // Root route
 app.get('/', (req, res) => {

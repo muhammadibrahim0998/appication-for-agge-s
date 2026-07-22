@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '../../schemas/authSchema';
 import { useUser } from '../../contexts/UserContext';
-import { Lock, User, ShieldCheck, AlertCircle, Egg, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, ShieldCheck, AlertCircle, Egg, Eye, EyeOff, ShoppingBag } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function LoginView() {
   const { login } = useUser();
@@ -110,8 +111,22 @@ export function LoginView() {
             </button>
           </form>
 
+          {/* Customer Register / Login Portal Link */}
+          <div className="mt-5 pt-4 border-t border-[var(--color-border-subtle)] text-center">
+            <p className="text-[9px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2">
+              Are you a Customer?
+            </p>
+            <Link
+              to="/shop"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Customer Register & Shop
+            </Link>
+          </div>
+
           {/* Secure Footer - More compact */}
-          <div className="mt-8 pt-5 border-t border-[var(--color-border-subtle)] flex items-center justify-center gap-2">
+          <div className="mt-5 pt-4 border-t border-[var(--color-border-subtle)] flex items-center justify-center gap-2">
             <ShieldCheck className="w-3 h-3 text-[var(--color-primary)]/50" />
             <span className="text-[8px] font-black text-[var(--color-text-muted)] uppercase tracking-widest leading-none">
               Nexus Engine v2.0
