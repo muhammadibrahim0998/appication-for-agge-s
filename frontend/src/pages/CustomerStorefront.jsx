@@ -74,11 +74,11 @@ function CustomerAuthView({ shopInfo }) {
 
           <div className="text-center mb-8">
             <div className="relative inline-block mb-4">
-              <div className="p-4 bg-[#1B3817] rounded-2xl border border-white/10 shadow-inner">
+              <div className="p-4 bg-white rounded-2xl shadow-inner">
                 {shopInfo?.logoUrl ? (
                   <img src={shopInfo.logoUrl} alt={shopInfo.name} className="w-12 h-12 rounded-xl object-cover" />
                 ) : (
-                  <Egg className="w-10 h-10 text-emerald-400" />
+                  <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-12 h-12 object-contain drop-shadow-md" />
                 )}
               </div>
             </div>
@@ -311,6 +311,8 @@ function StoreContent({ shopId }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [addedMsg, setAddedMsg] = useState('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isDesktopOpen, setIsDesktopOpen] = useState(true);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
 
   const fetchCatalog = async () => {
     setLoading(true);
@@ -366,10 +368,20 @@ function StoreContent({ shopId }) {
           
           {/* Left branding */}
           <div className="flex items-center gap-4">
+            {/* Mobile Toggle */}
             <button
               onClick={() => setIsMobileOpen(!isMobileOpen)}
               className="p-2.5 -ml-2 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition-all shadow-md border border-white/10 md:hidden"
               aria-label="Toggle Mobile Menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+
+            {/* Desktop Toggle */}
+            <button
+              onClick={() => setIsDesktopOpen(!isDesktopOpen)}
+              className="p-2.5 -ml-2 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition-all shadow-md border border-white/10 hidden md:block"
+              aria-label="Toggle Desktop Menu"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -379,13 +391,21 @@ function StoreContent({ shopId }) {
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="relative bg-[#1B3817] rounded-full w-12 h-12 flex items-center justify-center shrink-0 shadow-[0_8px_15px_rgba(0,0,0,0.4)] overflow-hidden border-2 border-white/40 ring-2 ring-black/20">
+              <button 
+                onClick={() => {
+                  setActiveCategory('All');
+                  const mainContent = document.getElementById('main-store-content');
+                  if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="relative bg-white rounded-full w-12 h-12 flex items-center justify-center shrink-0 shadow-[0_8px_15px_rgba(0,0,0,0.4)] overflow-hidden border-2 border-white/40 ring-2 ring-black/20 hover:scale-105 transition-transform"
+                title="Go to Products"
+              >
                 {shop?.logoUrl ? (
                   <img src={shop.logoUrl} alt={shop.name} className="w-full h-full object-cover" />
                 ) : (
-                  <Egg className="w-6 h-6 text-white" />
+                  <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-8 h-8 object-contain drop-shadow-md" />
                 )}
-              </div>
+              </button>
               <div>
                 <h1 className="text-xl font-black tracking-tighter text-white uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-none">{shop?.name || 'Customer Store'}</h1>
                 {shop?.address && (
@@ -404,12 +424,43 @@ function StoreContent({ shopId }) {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => setShowSearchDropdown(true)}
+                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
                 placeholder="Search products..."
                 className="w-full bg-white/90 backdrop-blur-sm rounded-full py-3 flex items-center pl-6 pr-14 text-sm font-black text-gray-800 placeholder:text-gray-400 focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all shadow-[inset_0_2px_6px_rgba(0,0,0,0.15),_0_10px_20px_rgba(0,0,0,0.25)] border-b-4 border-gray-300"
               />
               <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#1B3817] text-white p-2 rounded-full shadow-md">
                 <Search className="w-4 h-4" />
               </button>
+
+              {/* Desktop Search Dropdown */}
+              {search.trim() && showSearchDropdown && (
+                <div className="absolute top-full mt-2 w-full bg-[#1E293B] border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {items.length > 0 ? (
+                    <div className="max-h-64 overflow-y-auto py-2 scrollbar-hide">
+                      {items.map(item => (
+                        <button
+                          key={item._id}
+                          onClick={() => { setSelectedItem(item); setSearch(''); setShowSearchDropdown(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors text-left border-b border-slate-700/50 last:border-0"
+                        >
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-900 shrink-0 border border-slate-700">
+                            {item.images?.[0] ? <img src={item.images[0]} className="w-full h-full object-cover" /> : <Egg className="w-6 h-6 m-2 text-slate-600" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-white text-xs truncate uppercase tracking-tight">{item.name}</p>
+                            <p className="text-emerald-400 font-black text-[10px]">{currency} {item.price}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                      No products found
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -443,8 +494,10 @@ function StoreContent({ shopId }) {
 
         {/* ─── Green Gradient Sidebar matching main app ─────────────────────── */}
         <aside
-          className={`absolute md:relative top-0 h-full flex flex-col bg-gradient-to-b from-[#2D5A27] via-[#24491F] to-[#1B3817] text-white backdrop-blur-xl transition-all duration-300 ease-out border-r border-white/10 z-[100] md:z-20 overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.3)] w-56 ${
+          className={`absolute md:relative top-0 h-full flex flex-col bg-gradient-to-b from-[#2D5A27] via-[#24491F] to-[#1B3817] text-white backdrop-blur-xl transition-all duration-300 ease-in-out border-r border-white/10 z-[100] md:z-20 overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.3)] w-56 ${
             isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          } ${
+            !isDesktopOpen ? 'md:-ml-56' : 'md:ml-0'
           }`}
         >
           {/* Customer Profile Box */}
@@ -537,31 +590,72 @@ function StoreContent({ shopId }) {
 
         {/* ─── Main Content Pane with Gray Background & Green Accents ──────── */}
         <div className="flex-1 w-full flex flex-col overflow-hidden relative bg-[#0f172a]">
-          <main className="flex-1 w-full overflow-y-auto p-3 sm:p-4 lg:p-6 bg-[#0f172a] text-white">
+          <main id="main-store-content" className="flex-1 w-full overflow-y-auto p-3 sm:p-4 lg:p-6 bg-[#0f172a] text-white scroll-smooth">
             <div className="max-w-7xl mx-auto space-y-3">
 
-              {/* Compact Banner */}
-              <div className="relative bg-gradient-to-r from-[#1E293B] via-[#1B3817] to-[#0f172a] border border-slate-700/60 rounded-2xl px-5 py-3 shadow-md flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[9px] font-black uppercase tracking-widest shrink-0">
-                    <Sparkles className="w-3 h-3 text-emerald-400" /> Welcome, {customer.fullName}
-                  </span>
-                  <h2 className="text-xs sm:text-sm font-black text-white tracking-tight uppercase italic truncate">
-                    Products Catalog
-                  </h2>
+              {/* Compact Banner with Text */}
+              <div className="relative bg-gradient-to-r from-[#1E293B] via-[#1B3817] to-[#0f172a] border border-slate-700/60 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 overflow-hidden">
+                {/* Decorative background element */}
+                <div className="absolute -top-4 -right-4 p-4 opacity-[0.03] pointer-events-none">
+                  <ShoppingBag className="w-24 h-24 sm:w-32 sm:h-32 text-emerald-400" />
+                </div>
+                
+                <div className="relative z-10 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[9px] font-black uppercase tracking-widest shrink-0">
+                      <Sparkles className="w-3 h-3 text-emerald-400" /> Welcome, {customer.fullName}
+                    </span>
+                  </div>
+                  <h1 className="text-sm sm:text-base md:text-lg font-black text-white tracking-tight uppercase italic truncate">
+                    Fresh Inventory & Products Catalog
+                  </h1>
+                  <p className="text-[10px] sm:text-xs text-slate-400 max-w-xl font-medium line-clamp-1 sm:line-clamp-none">
+                    Browse products, check stock levels, and add items to your cart easily.
+                  </p>
                 </div>
               </div>
 
               {/* Mobile Search Bar */}
-              <div className="relative w-full sm:hidden">
+              <div className="relative w-full sm:hidden z-30">
                 <input
                   type="text"
                   placeholder="Search products..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-2xl py-3 pl-10 pr-4 text-xs font-bold text-white outline-none"
+                  onFocus={() => setShowSearchDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-2xl py-3 pl-10 pr-4 text-xs font-bold text-white outline-none focus:border-emerald-500 transition-colors shadow-inner"
                 />
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                
+                {/* Mobile Search Dropdown */}
+                {search.trim() && showSearchDropdown && (
+                  <div className="absolute top-full mt-2 w-full bg-[#1E293B] border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {items.length > 0 ? (
+                      <div className="max-h-60 overflow-y-auto py-2 scrollbar-hide">
+                        {items.map(item => (
+                          <button
+                            key={item._id}
+                            onClick={() => { setSelectedItem(item); setSearch(''); setShowSearchDropdown(false); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 transition-colors text-left border-b border-slate-700/50 last:border-0"
+                          >
+                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 shrink-0 border border-slate-700">
+                              {item.images?.[0] ? <img src={item.images[0]} className="w-full h-full object-cover" /> : <Egg className="w-5 h-5 m-1.5 text-slate-600" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-white text-[11px] truncate uppercase tracking-tight">{item.name}</p>
+                              <p className="text-emerald-400 font-black text-[9px]">{currency} {item.price}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center text-slate-400 text-[9px] font-bold uppercase tracking-widest">
+                        No products found
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Category Pills (Mobile/Quick Filter) */}
@@ -708,8 +802,8 @@ function ShopsList() {
     <div className="min-h-screen bg-[#0f172a] text-white flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-emerald-500/30 relative overflow-hidden">
       <div className="max-w-4xl w-full z-10 py-12">
         <div className="text-center mb-12 space-y-3">
-          <div className="inline-flex p-5 bg-[#1B3817] rounded-[2rem] border border-white/20 mb-2 shadow-2xl">
-            <Egg className="w-14 h-14 text-emerald-400" />
+          <div className="inline-flex p-5 bg-white rounded-[2rem] mb-2 shadow-2xl">
+            <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Network" className="w-14 h-14 object-contain drop-shadow-xl" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white uppercase italic">
             EGG STATION NETWORK
@@ -732,11 +826,11 @@ function ShopsList() {
                 className="group bg-[#1E293B] hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-[2rem] p-7 text-left transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl"
               >
                 <div className="flex items-center gap-5 mb-4">
-                  <div className="p-4 bg-[#1B3817] rounded-2xl border border-white/10 group-hover:scale-110 transition-transform">
+                  <div className="p-4 bg-white rounded-2xl group-hover:scale-110 transition-transform shadow-md">
                     {s.logoUrl ? (
                       <img src={s.logoUrl} alt={s.name} className="w-10 h-10 object-cover rounded-xl" />
                     ) : (
-                      <ShoppingBag className="w-10 h-10 text-white" />
+                      <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-10 h-10 object-contain drop-shadow-md" />
                     )}
                   </div>
                   <div>

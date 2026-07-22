@@ -57,11 +57,11 @@ export function Navbar({
           </button>
 
           <div className="flex items-center gap-3 group cursor-pointer hover:scale-105 transition-transform duration-300" onClick={() => navigate('/store')}>
-            <div className="relative bg-[#1B3817] rounded-full w-12 h-12 flex items-center justify-center shrink-0 shadow-[0_8px_15px_rgba(0,0,0,0.4)] overflow-hidden border-2 border-white/40 ring-2 ring-black/20">
+            <div className="relative bg-white rounded-full w-12 h-12 flex items-center justify-center shrink-0 shadow-[0_8px_15px_rgba(0,0,0,0.4)] overflow-hidden border-2 border-white/40 ring-2 ring-black/20">
               {logoUrl ? (
                 <img src={logoUrl} alt={shopName} className="w-full h-full object-cover" />
               ) : (
-                <Egg className="w-6 h-6 text-white" />
+                <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-8 h-8 object-contain drop-shadow-md" />
               )}
             </div>
             <h1 className="text-xl font-black tracking-tighter text-white hidden md:block uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">{shopName}</h1>

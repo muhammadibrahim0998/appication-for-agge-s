@@ -37,8 +37,8 @@ export function LoginView() {
 
         {/* Compact Logo Section - Reduced margins and sizes */}
         <div className="text-center mb-6">
-          <div className="inline-flex p-3.5 bg-[var(--color-surface-card)] rounded-2xl shadow-premium mb-3 group hover:scale-105 transition-transform duration-500 border border-[var(--color-border-subtle)]">
-            <Egg className="w-8 h-8 text-[var(--color-primary)] group-hover:rotate-12 transition-transform" />
+          <div className="inline-flex p-3.5 bg-white rounded-2xl shadow-premium mb-3 group hover:scale-105 transition-transform duration-500 border border-[var(--color-border-subtle)]">
+            <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-8 h-8 object-contain drop-shadow-md group-hover:rotate-12 transition-transform" />
           </div>
           <p className="text-[var(--color-text-muted)] font-bold tracking-[0.15em] uppercase text-[8px] mt-2 opacity-60">
             Egg & Poultry Inventory Management
