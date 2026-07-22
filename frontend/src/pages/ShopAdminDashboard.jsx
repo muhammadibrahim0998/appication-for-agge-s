@@ -17,7 +17,11 @@ export function ShopAdminDashboard({
   onEditSale, onDeleteSale, onReturnSale, onViewSale,
   dailySales, monthlySales, yearlySales, dailyProfit, monthlyProfit, yearlyProfit
 }) {
-  const [activeTab, setActiveTab] = useState('inventory');
+  const [activeTab, setTab] = useState(() => sessionStorage.getItem('shopAdminTab') || 'inventory');
+  const setActiveTab = (tab) => {
+    setTab(tab);
+    sessionStorage.setItem('shopAdminTab', tab);
+  };
   const { user, isShopAdmin } = useUser();
 
   const {

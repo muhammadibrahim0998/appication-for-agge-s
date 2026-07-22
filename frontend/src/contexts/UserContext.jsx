@@ -14,6 +14,7 @@ export const UserProvider = ({ children }) => {
         setUser(data.user);
       } catch (error) {
         setUser(null);
+      sessionStorage.removeItem('nexflow_token');
       } finally {
         setLoading(false);
       }
@@ -24,6 +25,9 @@ export const UserProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       const data = await apiLogin({ username, password });
+      if (data.token) {
+        sessionStorage.setItem('nexflow_token', data.token);
+      }
       setUser(data.user);
       return data.user;
     } catch (error) {
@@ -38,6 +42,7 @@ export const UserProvider = ({ children }) => {
       console.error("Logout failed:", error);
     } finally {
       setUser(null);
+      sessionStorage.removeItem('nexflow_token');
       localStorage.removeItem('nexflow_shift');
     }
   };

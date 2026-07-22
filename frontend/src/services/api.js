@@ -12,6 +12,10 @@ const api = axios.create({
 
 // Request interceptor for debugging
 api.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('nexflow_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   console.log(`[Request] ${config.method.toUpperCase()} ${config.url}`);
   return config;
 }, (error) => {

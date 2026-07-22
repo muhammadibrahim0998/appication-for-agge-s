@@ -14,7 +14,11 @@ import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 export function SuperAdminDashboard() {
     const [shops, setShops] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setTab] = useState(() => sessionStorage.getItem('superAdminTab') || 'overview');
+  const setActiveTab = (tab) => {
+    setTab(tab);
+    sessionStorage.setItem('superAdminTab', tab);
+  };
     const [editingShop, setEditingShop] = useState(null);
     const [editData, setEditData] = useState({ name: '', address: '', contactNumber: '', status: 'active' });
     const [viewingShop, setViewingShop] = useState(null);

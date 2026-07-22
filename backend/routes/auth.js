@@ -32,7 +32,11 @@ const getCookieOptions = (req, extra = {}) => ({
  */
 router.get("/me", async (req, res) => {
   try {
-    const userId = req.cookies.nexflow_sess;
+    const authHeader = req.headers.authorization;
+    let userId = req.cookies.nexflow_sess;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      userId = authHeader.split(' ')[1];
+    }
 
     if (!userId) {
       return res.status(401).json({ 
@@ -104,6 +108,7 @@ router.post("/login", validateLogin, async (req, res) => {
     res.json({
       success: true,
       message: "Login successful",
+      token: user._id.toString(),
       user: {
         id: user._id,
         username: user.username,
