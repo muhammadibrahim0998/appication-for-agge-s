@@ -2,12 +2,15 @@ import User from '../models/User.js';
 
 export const authenticate = async (req, res, next) => {
   try {
-    const userId = req.cookies.nexflow_sess;
+    const authHeader = req.headers.authorization;
+    let userId = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      userId = authHeader.split(' ')[1];
+    }
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
     const user = await User.findById(userId);
     if (!user || user.status !== 'active') {
-      res.clearCookie('nexflow_sess');
       return res.status(401).json({ message: "Session invalid or account inactive" });
     }
 
