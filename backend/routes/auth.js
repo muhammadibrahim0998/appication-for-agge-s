@@ -33,7 +33,7 @@ const getCookieOptions = (req, extra = {}) => ({
 router.get("/me", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    let userId = req.cookies.nexflow_sess;
+    let userId = null;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       userId = authHeader.split(' ')[1];
     }
