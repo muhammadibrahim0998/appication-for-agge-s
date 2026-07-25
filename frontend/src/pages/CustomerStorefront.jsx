@@ -376,7 +376,7 @@ function StoreContent({ shopId }) {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#0f172a] text-white w-full tracking-tight">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#0f172a] text-white w-full tracking-tight">
       {/* Cart Drawer */}
       <CartDrawer currency={currency} />
 
@@ -432,11 +432,11 @@ function StoreContent({ shopId }) {
                   <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-8 h-8 object-contain drop-shadow-md" />
                 )}
               </button>
-              <div>
-                <h1 className="text-xl font-black tracking-tighter text-white uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-none">{shop?.name || 'Customer Store'}</h1>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-black tracking-tighter text-white uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-none truncate max-w-[140px] sm:max-w-xs md:max-w-md">{shop?.name || 'Customer Store'}</h1>
                 {shop?.address && (
-                  <p className="text-[10px] font-bold text-emerald-300 flex items-center gap-1 mt-1 truncate">
-                    <MapPin className="w-3 h-3" />{shop.address}
+                  <p className="text-[10px] font-bold text-emerald-300 flex items-center gap-1 mt-1 truncate max-w-[140px] sm:max-w-xs md:max-w-md">
+                    <MapPin className="w-3 h-3 shrink-0" /> <span className="truncate">{shop.address}</span>
                   </p>
                 )}
               </div>
@@ -615,7 +615,7 @@ function StoreContent({ shopId }) {
         </aside>
 
         {/* ─── Main Content Pane with Gray Background & Green Accents ──────── */}
-        <div className="flex-1 w-full flex flex-col overflow-hidden relative bg-[#0f172a]">
+        <div className="flex-1 w-full min-w-0 flex flex-col overflow-hidden relative bg-[#0f172a]">
           <main id="main-store-content" className="flex-1 w-full overflow-y-auto p-3 sm:p-4 lg:p-6 bg-[#0f172a] text-white scroll-smooth">
             <div className="max-w-7xl mx-auto space-y-3">
 
@@ -716,7 +716,7 @@ function StoreContent({ shopId }) {
                   <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No products found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                   {items.map(item => (
                     <div
                       key={item._id}
