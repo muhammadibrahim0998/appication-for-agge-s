@@ -174,4 +174,30 @@ router.patch('/order/:orderId/status', async (req, res) => {
   }
 });
 
+// Endpoint to delete payment proof screenshot of an order
+router.delete('/order/:orderId/proof', async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.paymentProof = undefined;
+    await order.save();
+    res.json({ success: true, message: 'Payment screenshot proof deleted successfully', order });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Endpoint to delete an order completely
+router.delete('/order/:orderId', async (req, res) => {
+  try {
+    const order = await Order.findByIdAndDelete(req.params.orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json({ success: true, message: 'Order deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
+

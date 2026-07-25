@@ -47,6 +47,14 @@ export function SuperAdminDashboard() {
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [selectedProofImage, setSelectedProofImage] = useState(null);
+    const [deleteOrderModal, setDeleteOrderModal] = useState({
+        isOpen: false,
+        orderId: null,
+        type: 'proof',
+        title: '',
+        message: ''
+    });
+    const [isDeletingOrder, setIsDeletingOrder] = useState(false);
 
     useEffect(() => {
         fetchShops();
@@ -74,6 +82,53 @@ export function SuperAdminDashboard() {
             fetchOrders();
         } catch (err) {
             toast.error('Failed to update status');
+        }
+    };
+
+    const handleDeleteProof = (orderId) => {
+        setDeleteOrderModal({
+            isOpen: true,
+            orderId,
+            type: 'proof',
+            title: 'Delete Screenshot Proof',
+            message: 'Are you sure you want to delete this payment screenshot proof?'
+        });
+    };
+
+    const handleDeleteOrder = (orderId) => {
+        setDeleteOrderModal({
+            isOpen: true,
+            orderId,
+            type: 'order',
+            title: 'Delete Entire Order',
+            message: 'Are you sure you want to permanently delete this customer order?'
+        });
+    };
+
+    const confirmDeleteOrderAction = async () => {
+        const { orderId, type } = deleteOrderModal;
+        if (!orderId) return;
+        setIsDeletingOrder(true);
+        try {
+            if (type === 'proof') {
+                await api.delete(`/checkout/order/${orderId}/proof`);
+                toast.success('Payment screenshot proof deleted successfully');
+                if (selectedProofImage?.orderId === orderId) {
+                    setSelectedProofImage(null);
+                }
+            } else {
+                await api.delete(`/checkout/order/${orderId}`);
+                toast.success('Order deleted successfully');
+                if (selectedProofImage?.orderId === orderId) {
+                    setSelectedProofImage(null);
+                }
+            }
+            setDeleteOrderModal({ isOpen: false, orderId: null, type: 'proof', title: '', message: '' });
+            fetchOrders();
+        } catch (err) {
+            toast.error(type === 'proof' ? 'Failed to delete screenshot proof' : 'Failed to delete order');
+        } finally {
+            setIsDeletingOrder(false);
         }
     };
 
@@ -141,6 +196,7 @@ export function SuperAdminDashboard() {
             name: shop.name || '',
             address: shop.address || '',
             contactNumber: shop.contactNumber || '',
+            ownerEmail: shop.ownerDetails?.email || '',
             status: shop.status
         });
         // Scroll to management section if needed - added a slight delay to ensure tab is rendered
@@ -367,8 +423,9 @@ export function SuperAdminDashboard() {
                                             <Store className="w-6 h-6 text-zinc-400 group-hover/shop:text-green-500 transition-colors" />
                                         </div>
                                         {isEditing ? (
-                                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-5 gap-3">
                                                 <input value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} className="px-3 py-2 rounded-lg border border-zinc-100 bg-zinc-50 text-zinc-900 text-xs font-bold focus:bg-white outline-none" placeholder="Name" />
+                                                <input value={editData.ownerEmail} onChange={(e) => setEditData({ ...editData, ownerEmail: e.target.value })} className="px-3 py-2 rounded-lg border border-zinc-100 bg-zinc-50 text-zinc-900 text-xs font-bold focus:bg-white outline-none" placeholder="Email Address" type="email" />
                                                 <input value={editData.address} onChange={(e) => setEditData({ ...editData, address: e.target.value })} className="px-3 py-2 rounded-lg border border-zinc-100 bg-zinc-50 text-zinc-900 text-xs font-bold focus:bg-white outline-none" placeholder="Address" />
                                                 <input value={editData.contactNumber} onChange={(e) => setEditData({ ...editData, contactNumber: e.target.value })} className="px-3 py-2 rounded-lg border border-zinc-100 bg-zinc-50 text-zinc-900 text-xs font-bold focus:bg-white outline-none" placeholder="Phone" />
                                                 <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })} className="px-3 py-2 rounded-lg border border-zinc-100 bg-zinc-50 text-zinc-900 text-xs font-bold focus:bg-white outline-none">
@@ -463,13 +520,21 @@ export function SuperAdminDashboard() {
                                         <div>
                                             <h4 className="text-[10px] font-black text-emerald-600 tracking-[0.2em] mb-4 pl-1">Primary Administrator</h4>
                                             <div className="space-y-4">
-                                                <div className="bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100/50">
+                                                <div className="bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100/50 hover:bg-white hover:border-emerald-500/30 transition-all shadow-sm">
                                                     <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Authorized Official</p>
-                                                    <p className="text-xs font-bold text-zinc-800">{viewingShop.adminFullName || "System Owner"}</p>
+                                                    <p className="text-xs font-bold text-zinc-800">{viewingShop.ownerDetails?.fullName || viewingShop.adminFullName || "System Owner"}</p>
                                                 </div>
-                                                <div className="bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100/50">
-                                                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">System Username</p>
-                                                    <p className="text-xs font-bold text-zinc-800">@{viewingShop.adminUsername || "admin"}</p>
+                                                <div className="bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100/50 hover:bg-white hover:border-emerald-500/30 transition-all shadow-sm flex flex-col gap-3">
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">System Username</p>
+                                                        <p className="text-xs font-bold text-zinc-800">@{viewingShop.adminUsername || "admin"}</p>
+                                                    </div>
+                                                    {viewingShop.ownerDetails?.email && (
+                                                        <div className="pt-2 border-t border-zinc-100/50">
+                                                            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Registered Email</p>
+                                                            <p className="text-xs font-bold text-emerald-600 break-all">{viewingShop.ownerDetails.email}</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -543,14 +608,23 @@ export function SuperAdminDashboard() {
                                     {/* Proof Screenshot Section */}
                                     <div className="flex items-center gap-4">
                                         {ord.paymentProof ? (
-                                            <div 
-                                                onClick={() => setSelectedProofImage(ord.paymentProof)} 
-                                                className="cursor-pointer group relative border-2 border-emerald-500/60 rounded-2xl overflow-hidden shadow-lg bg-black/40 hover:scale-105 transition-all"
-                                            >
-                                                <img src={ord.paymentProof} alt="Payment Proof" className="w-24 h-24 object-cover" />
-                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-black uppercase tracking-wider transition-all">
-                                                    View Proof
+                                            <div className="relative group">
+                                                <div 
+                                                    onClick={() => setSelectedProofImage({ url: ord.paymentProof, orderId: ord._id })} 
+                                                    className="cursor-pointer group relative border-2 border-emerald-500/60 rounded-2xl overflow-hidden shadow-lg bg-black/40 hover:scale-105 transition-all"
+                                                >
+                                                    <img src={ord.paymentProof} alt="Payment Proof" className="w-24 h-24 object-cover" />
+                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-black uppercase tracking-wider transition-all">
+                                                        View Proof
+                                                    </div>
                                                 </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteProof(ord._id); }}
+                                                    title="Delete Screenshot"
+                                                    className="absolute -top-2 -right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-lg transition-all z-10 hover:scale-110"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
                                             </div>
                                         ) : (
                                             <div className="w-24 h-24 rounded-2xl border border-dashed border-slate-700 flex flex-col items-center justify-center p-2 text-center text-slate-500 text-[10px] font-bold">
@@ -569,6 +643,14 @@ export function SuperAdminDashboard() {
                                                     Reject Payment
                                                 </button>
                                             )}
+                                            {ord.paymentProof && (
+                                                <button onClick={() => handleDeleteProof(ord._id)} className="px-3 py-2 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 rounded-xl text-xs font-black uppercase transition-all shadow-lg active:scale-95 flex items-center justify-center gap-1.5">
+                                                    <Trash2 className="w-3.5 h-3.5" /> Delete Screenshot
+                                                </button>
+                                            )}
+                                            <button onClick={() => handleDeleteOrder(ord._id)} className="px-3 py-2 bg-zinc-800/80 hover:bg-rose-900/60 text-slate-300 hover:text-rose-300 border border-slate-700/60 rounded-xl text-xs font-black uppercase transition-all shadow-lg active:scale-95 flex items-center justify-center gap-1.5">
+                                                <Trash2 className="w-3.5 h-3.5" /> Delete Order
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -582,16 +664,37 @@ export function SuperAdminDashboard() {
             {selectedProofImage && (
                 <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setSelectedProofImage(null)}>
                     <div className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-700 rounded-3xl p-4 shadow-2xl flex flex-col items-center" onClick={e => e.stopPropagation()}>
-                        <div className="w-full flex justify-between items-center pb-3 mb-3 border-b border-slate-800">
+                        <div className="w-full flex justify-between items-center pb-3 mb-3 border-b border-slate-800 gap-4">
                             <h3 className="text-sm font-black text-emerald-400 uppercase tracking-wider">Transaction Payment Screenshot Proof</h3>
-                            <button onClick={() => setSelectedProofImage(null)} className="p-2 hover:bg-white/10 rounded-full text-white">
-                                <X className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {selectedProofImage.orderId && (
+                                    <button 
+                                        onClick={() => handleDeleteProof(selectedProofImage.orderId)} 
+                                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-lg"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" /> Delete Screenshot
+                                    </button>
+                                )}
+                                <button onClick={() => setSelectedProofImage(null)} className="p-2 hover:bg-white/10 rounded-full text-white">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
-                        <img src={selectedProofImage} alt="Full Payment Proof" className="max-h-[75vh] w-auto object-contain rounded-2xl border border-slate-800" />
+                        <img src={selectedProofImage.url || selectedProofImage} alt="Full Payment Proof" className="max-h-[75vh] w-auto object-contain rounded-2xl border border-slate-800" />
                     </div>
                 </div>
             )}
+
+            {/* Order / Screenshot Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={deleteOrderModal.isOpen}
+                onClose={() => setDeleteOrderModal({ ...deleteOrderModal, isOpen: false })}
+                onConfirm={confirmDeleteOrderAction}
+                title={deleteOrderModal.title}
+                message={deleteOrderModal.message}
+                itemName={deleteOrderModal.orderId ? `#${deleteOrderModal.orderId.slice(-6).toUpperCase()}` : ''}
+                isDeleting={isDeletingOrder}
+            />
         </div>
     );
 }

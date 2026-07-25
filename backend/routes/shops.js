@@ -37,7 +37,7 @@ router.post('/', authenticate, requireSuperAdmin, validateShop, async (req, res)
       logoUrl,
       ownerDetails: {
         fullName: adminFullName || 'Shop Admin',
-        email: adminEmail || '',
+        email: adminEmail || adminUsername || '',
         phone: adminPhone || ''
       }
     });
@@ -57,6 +57,7 @@ router.post('/', authenticate, requireSuperAdmin, validateShop, async (req, res)
       adminUser = new User({
         username: adminUsername,
         password: adminPassword,
+        email: adminEmail || adminUsername || undefined,
         fullName: adminFullName || 'Shop Admin',
         role: 'shop_admin',
         shopId: shop._id
@@ -73,7 +74,7 @@ router.post('/', authenticate, requireSuperAdmin, validateShop, async (req, res)
 // Update shop details
 router.put('/:id', authenticate, validateShop, async (req, res) => {
   try {
-    const { name, address, contactNumber, status } = req.body;
+    const { name, address, contactNumber, status, ownerEmail } = req.body;
     
     // Authorization Check: Super Admin OR the Shop's Admin
     const isSuperAdmin = req.user.role === 'super_admin';
@@ -83,17 +84,33 @@ router.put('/:id', authenticate, validateShop, async (req, res) => {
       return res.status(403).json({ message: "Not authorized to update this shop" });
     }
 
+    const shop = await Shop.findById(req.params.id);
+    if (!shop) return res.status(404).json({ message: 'Shop not found' });
+
     // Only Super Admin can change shop status
-    const updateData = { name, address, contactNumber };
+    shop.name = name;
+    shop.address = address;
+    shop.contactNumber = contactNumber;
+    
     if (isSuperAdmin && status) {
-      updateData.status = status;
+      shop.status = status;
+    }
+    
+    if (ownerEmail !== undefined) {
+      if (!shop.ownerDetails) shop.ownerDetails = {};
+      shop.ownerDetails.email = ownerEmail;
+      
+      // Update the user's email too if we have a match
+      if (shop.ownerDetails.fullName) {
+         // Assuming the first shop_admin is the owner
+         await User.findOneAndUpdate(
+           { shopId: shop._id, role: 'shop_admin' },
+           { email: ownerEmail }
+         );
+      }
     }
 
-    const shop = await Shop.findByIdAndUpdate(
-      req.params.id, 
-      updateData,
-      { new: true }
-    );
+    await shop.save();
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
     res.json(shop);
   } catch (error) {

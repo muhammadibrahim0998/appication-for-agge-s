@@ -16,6 +16,7 @@ const UserSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   preferredShift: { type: String, enum: ['day', 'night', 'both'], default: 'both' },
   phoneNumber: { type: String },
+  email: { type: String, sparse: true },
   lastLogged: { type: Date }
 }, { timestamps: true });
 
