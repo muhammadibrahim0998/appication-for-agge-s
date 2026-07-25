@@ -9,6 +9,7 @@ import {
   Menu, Filter, HelpCircle, LayoutDashboard
 } from 'lucide-react';
 import { CustomerAuthProvider, useCustomerAuth } from '../contexts/CustomerAuthContext.jsx';
+import { CheckoutModal } from '../components/CheckoutModal.jsx';
 
 const API_CATALOG = '/api/catalog';
 
@@ -211,6 +212,7 @@ function CustomerAuthView({ shopInfo }) {
 // ─── Cart Drawer Component ───────────────────────────────────────────────────
 function CartDrawer({ currency }) {
   const { cart, cartOpen, setCartOpen, cartTotal, updateCartItem, removeFromCart, clearCart } = useCustomerAuth();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   if (!cartOpen) return null;
 
@@ -282,10 +284,13 @@ function CartDrawer({ currency }) {
               <span className="text-slate-400 font-bold uppercase text-xs tracking-widest">Total Amount</span>
               <span className="text-2xl font-black text-emerald-400">{currency} {cartTotal.toLocaleString()}</span>
             </div>
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
-              <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-widest">
-                Contact store to complete your order
-              </p>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setCheckoutOpen(true)}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md"
+              >
+                Proceed to Checkout
+              </button>
             </div>
             <button onClick={clearCart}
               className="w-full py-3 bg-white/5 hover:bg-rose-500/10 border border-white/10 text-slate-400 hover:text-rose-400 rounded-xl font-black text-xs uppercase tracking-widest transition-all">
@@ -294,6 +299,13 @@ function CartDrawer({ currency }) {
           </div>
         )}
       </div>
+      
+      <CheckoutModal 
+        isOpen={checkoutOpen} 
+        onClose={() => setCheckoutOpen(false)} 
+        totalAmount={cartTotal} 
+        currency={currency} 
+      />
     </div>
   );
 }
@@ -338,6 +350,20 @@ function StoreContent({ shopId }) {
   }
 
   const currency = shop?.currency || 'Rs.';
+
+  // Handle payment redirects (e.g. from Stripe)
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (query.get('payment') === 'success') {
+      setAddedMsg('Payment Successful! Order Confirmed.');
+      // clear URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    if (query.get('payment') === 'cancel') {
+      setAddedMsg('Payment Canceled.');
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
 
   const handleAddToCart = async (item) => {
     try {

@@ -44,9 +44,38 @@ export function SuperAdminDashboard() {
         }
     });
 
+    const [orders, setOrders] = useState([]);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [selectedProofImage, setSelectedProofImage] = useState(null);
+
     useEffect(() => {
         fetchShops();
+        fetchOrders();
     }, []);
+
+    const fetchOrders = async () => {
+        setOrdersLoading(true);
+        try {
+            const res = await api.get('/checkout/orders');
+            if (res.data.success) {
+                setOrders(res.data.orders);
+            }
+        } catch (err) {
+            console.error('Failed to load orders:', err);
+        } finally {
+            setOrdersLoading(false);
+        }
+    };
+
+    const handleUpdateOrderStatus = async (orderId, paymentStatus) => {
+        try {
+            await api.patch(`/checkout/order/${orderId}/status`, { paymentStatus });
+            toast.success(`Payment status updated to ${paymentStatus}`);
+            fetchOrders();
+        } catch (err) {
+            toast.error('Failed to update status');
+        }
+    };
 
     const fetchShops = async () => {
         try {
@@ -176,6 +205,15 @@ export function SuperAdminDashboard() {
                     >
                         Manage Shops
                     </button>
+                    <button
+                        onClick={() => setActiveTab('orders')}
+                        className={`px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'orders'
+                            ? 'bg-green-600 text-white shadow-lg'
+                            : 'text-zinc-500 hover:text-zinc-900'
+                            }`}
+                    >
+                        EasyPaisa Receipts & Orders
+                    </button>
                 </div>
             </div>
 
@@ -240,7 +278,7 @@ export function SuperAdminDashboard() {
                         </div>
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'management' ? (
                 /* Management Content (Integrated from SuperAdminDashboard) */
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Create Shop Form */}
@@ -451,6 +489,107 @@ export function SuperAdminDashboard() {
                             </div>
                         </div>
                     )}
+                </div>
+            ) : (
+                /* EasyPaisa Receipts & Orders Tab Content */
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-card p-6 rounded-3xl border border-[var(--color-border-subtle)] shadow-xl">
+                        <div>
+                            <h2 className="text-2xl font-black uppercase text-[var(--color-text-primary)] tracking-tight">Customer EasyPaisa & Orders Verification</h2>
+                            <p className="text-xs text-[var(--color-text-secondary)] font-bold mt-1 uppercase tracking-wider">Inspect transaction screenshot proofs & manage payment statuses</p>
+                        </div>
+                        <button onClick={fetchOrders} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg active:scale-95">
+                            Refresh Orders
+                        </button>
+                    </div>
+
+                    {ordersLoading ? (
+                        <div className="py-20 text-center text-slate-400 font-bold">Loading orders and payment receipts...</div>
+                    ) : orders.length === 0 ? (
+                        <div className="py-20 text-center bg-surface-card border border-[var(--color-border-subtle)] rounded-3xl text-slate-400 font-bold">
+                            No customer orders placed yet.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-4">
+                            {orders.map(ord => (
+                                <div key={ord._id} className="bg-surface-card border border-[var(--color-border-subtle)] rounded-3xl p-6 shadow-xl flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                                    <div className="space-y-2 flex-1">
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            <span className="text-xs font-black px-3 py-1 bg-slate-800 text-white rounded-lg">#{ord._id.slice(-6).toUpperCase()}</span>
+                                            <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${ord.paymentMethod === 'EASYPAISA' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                {ord.paymentMethod}
+                                            </span>
+                                            <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${ord.paymentStatus === 'PAID' ? 'bg-emerald-600 text-white' : ord.paymentStatus === 'FAILED' ? 'bg-rose-600 text-white' : 'bg-amber-500/20 text-amber-400'}`}>
+                                                {ord.paymentStatus}
+                                            </span>
+                                            <span className="text-xs font-bold text-slate-400">{new Date(ord.createdAt).toLocaleString()}</span>
+                                        </div>
+
+                                        <div className="text-sm font-bold text-[var(--color-text-primary)]">
+                                            Customer: <span className="text-emerald-400">{ord.customerId?.fullName || ord.shippingDetails?.fullName || 'Customer'}</span> ({ord.shippingDetails?.phone || ord.customerId?.phone || 'No phone'})
+                                        </div>
+
+                                        {ord.transactionId && (
+                                            <div className="text-xs font-bold text-slate-300">
+                                                Transaction ID / Sender: <span className="text-amber-300">{ord.transactionId}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="text-xs text-slate-400">
+                                            Items: {ord.items?.map(i => `${i.name} x${i.quantity}`).join(', ')} | Total: <span className="font-black text-emerald-400 text-sm">PKR {ord.totalAmount?.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Proof Screenshot Section */}
+                                    <div className="flex items-center gap-4">
+                                        {ord.paymentProof ? (
+                                            <div 
+                                                onClick={() => setSelectedProofImage(ord.paymentProof)} 
+                                                className="cursor-pointer group relative border-2 border-emerald-500/60 rounded-2xl overflow-hidden shadow-lg bg-black/40 hover:scale-105 transition-all"
+                                            >
+                                                <img src={ord.paymentProof} alt="Payment Proof" className="w-24 h-24 object-cover" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-black uppercase tracking-wider transition-all">
+                                                    View Proof
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-24 h-24 rounded-2xl border border-dashed border-slate-700 flex flex-col items-center justify-center p-2 text-center text-slate-500 text-[10px] font-bold">
+                                                No Screenshot Uploaded
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-col gap-2">
+                                            {ord.paymentStatus !== 'PAID' && (
+                                                <button onClick={() => handleUpdateOrderStatus(ord._id, 'PAID')} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase shadow-lg active:scale-95">
+                                                    Approve (PAID)
+                                                </button>
+                                            )}
+                                            {ord.paymentStatus !== 'FAILED' && (
+                                                <button onClick={() => handleUpdateOrderStatus(ord._id, 'FAILED')} className="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black uppercase shadow-lg active:scale-95">
+                                                    Reject Payment
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Lightbox Screenshot Modal */}
+            {selectedProofImage && (
+                <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setSelectedProofImage(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-700 rounded-3xl p-4 shadow-2xl flex flex-col items-center" onClick={e => e.stopPropagation()}>
+                        <div className="w-full flex justify-between items-center pb-3 mb-3 border-b border-slate-800">
+                            <h3 className="text-sm font-black text-emerald-400 uppercase tracking-wider">Transaction Payment Screenshot Proof</h3>
+                            <button onClick={() => setSelectedProofImage(null)} className="p-2 hover:bg-white/10 rounded-full text-white">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <img src={selectedProofImage} alt="Full Payment Proof" className="max-h-[75vh] w-auto object-contain rounded-2xl border border-slate-800" />
+                    </div>
                 </div>
             )}
         </div>

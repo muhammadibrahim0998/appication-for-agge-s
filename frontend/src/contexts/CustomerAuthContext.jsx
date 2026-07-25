@@ -99,7 +99,7 @@ export function CustomerAuthProvider({ shopId, children }) {
   return (
     <CustomerAuthContext.Provider value={{
       customer, cart, cartOpen, setCartOpen,
-      cartTotal, cartCount,
+      cartTotal, cartCount, authHeader,
       register, login, logout,
       addToCart, updateCartItem, removeFromCart, clearCart
     }}>

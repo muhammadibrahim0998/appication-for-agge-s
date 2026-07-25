@@ -39,37 +39,78 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ storage, fileFilter });
 
-// @desc    Upload images to Cloudinary
+// Helper to save image with Cloudinary or fallback to local /uploads
+const saveImageFile = async (file) => {
+  let url = null;
+  if (process.env.CLOUDINARY_CLOUD_NAME) {
+    try {
+      const result = await uploadOnCloudinary(file.path);
+      if (result?.secure_url) {
+        url = result.secure_url;
+      }
+    } catch (err) {
+      console.warn(`[Upload] Cloudinary upload failed, using fallback:`, err.message);
+    }
+  }
+
+  // Fallback to local /uploads static directory
+  if (!url) {
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const newFilename = `proof-${Date.now()}-${path.basename(file.path)}`;
+    const destPath = path.join(uploadsDir, newFilename);
+    fs.copyFileSync(file.path, destPath);
+    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    url = `/uploads/${newFilename}`;
+  }
+  return url;
+};
+
+// @desc    Upload images to Cloudinary (Authenticated)
 // @route   POST /api/upload
 router.post(
   '/',
   authenticate,
   upload.array('images', 5),
   asyncHandler(async (req, res) => {
-    console.log(`[Upload] Body:`, req.body);
-    console.log(`[Upload] Files:`, req.files?.map(f => ({ name: f.originalname, size: f.size, path: f.path })));
-
     if (!req.files || req.files.length === 0) {
-      console.warn(`[Upload] No files received in request`);
       throw new ApiError(400, 'Please upload at least one image');
     }
 
     const uploadedUrls = [];
-
-    console.log(`[Upload] Processing ${req.files.length} files...`);
     for (const file of req.files) {
-      console.log(`[Upload] Uploading to Cloudinary: ${file.originalname}`);
-      const result = await uploadOnCloudinary(file.path);
-      if (!result) {
-        console.error(`[Upload] Cloudinary upload failed for ${file.originalname}`);
-        throw new ApiError(500, `Failed to upload file: ${file.originalname} to Cloudinary. Check backend logs.`);
-      }
-      uploadedUrls.push(result.secure_url);
+      const url = await saveImageFile(file);
+      uploadedUrls.push(url);
     }
 
     return res.status(200).json({ 
       images: uploadedUrls,
       message: 'Images uploaded successfully' 
+    });
+  })
+);
+
+// @desc    Public upload route for customer payment proofs
+// @route   POST /api/upload/public
+router.post(
+  '/public',
+  upload.array('images', 5),
+  asyncHandler(async (req, res) => {
+    if (!req.files || req.files.length === 0) {
+      throw new ApiError(400, 'Please upload at least one image');
+    }
+
+    const uploadedUrls = [];
+    for (const file of req.files) {
+      const url = await saveImageFile(file);
+      uploadedUrls.push(url);
+    }
+
+    return res.status(200).json({ 
+      images: uploadedUrls,
+      message: 'Payment proof screenshot uploaded successfully' 
     });
   })
 );
