@@ -31,8 +31,7 @@ dns.setDefaultResultOrder('ipv4first');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Connect to Database
-connectDB();
+
 
 const app = express();
 
@@ -107,6 +106,9 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
+// Connect to Database
+await connectDB();
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);

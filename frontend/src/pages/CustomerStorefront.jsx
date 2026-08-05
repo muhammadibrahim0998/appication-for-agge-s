@@ -6,10 +6,12 @@ import {
   Plus, Minus, Trash2, User, Lock, Mail, LogOut, Eye, EyeOff,
   CheckCircle, AlertCircle, Sparkles, UserCircle2, Store,
   Layers, ShoppingBasket, Shirt, Home, Watch, Smartphone, Footprints,
-  Menu, Filter, HelpCircle, LayoutDashboard
+  Menu, Filter, HelpCircle, LayoutDashboard,
+  Truck
 } from 'lucide-react';
 import { CustomerAuthProvider, useCustomerAuth } from '../contexts/CustomerAuthContext.jsx';
 import { CheckoutModal } from '../components/CheckoutModal.jsx';
+import UserOrderModal from '../components/UserOrderModal.jsx';
 
 const API_CATALOG = '/api/catalog';
 
@@ -325,6 +327,7 @@ function StoreContent({ shopId }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isDesktopOpen, setIsDesktopOpen] = useState(true);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [orderOpen, setOrderOpen] = useState(false); // new state to show orders of user 
 
   const fetchCatalog = async () => {
     setLoading(true);
@@ -374,6 +377,7 @@ function StoreContent({ shopId }) {
       alert(err.message);
     }
   };
+
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#0f172a] text-white w-full tracking-tight">
@@ -586,6 +590,8 @@ function StoreContent({ shopId }) {
               </div>
             )}
 
+            
+
             {/* Cart Quick Access */}
             <div>
               <p className="px-8 text-[11px] font-bold text-white/30 mb-3 tracking-wider uppercase">Cart</p>
@@ -597,8 +603,18 @@ function StoreContent({ shopId }) {
                   <ShoppingCart className="w-5 h-5 text-white" />
                   <span>My Cart ({cartCount})</span>
                 </button>
+
+                <button
+                  onClick={() => { setOrderOpen(true); setIsMobileOpen(false); }}
+                  className="w-full flex items-center gap-4 group px-3 py-3 mx-4 rounded-2xl text-[13px] font-bold text-white/60 hover:text-white hover:bg-[#1B3817] border-t border-t-transparent hover:border-t-white/20 border-b-4 border-b-transparent hover:border-b-[#12290D] max-w-[192px]"
+                >
+                  <Truck  className="w-5 h-5 text-white" />
+                  <span>My Oders</span>
+                </button>
               </div>
             </div>
+
+
 
             {/* Logout Footer */}
             <div className="pb-6 pt-4 border-t border-white/10 mx-4">
@@ -810,6 +826,15 @@ function StoreContent({ shopId }) {
           </div>
         </div>
       )}
+
+      {
+        orderOpen &&    
+        <>
+          <UserOrderModal setOrderOpen={setOrderOpen} />
+      </>
+      }
+
+
     </div>
   );
 }

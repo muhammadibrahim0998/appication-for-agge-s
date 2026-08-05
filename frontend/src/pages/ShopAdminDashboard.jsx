@@ -7,8 +7,9 @@ import { SalesHistory } from '../components/SalesHistory';
 import { LowStockBanner } from '../components/LowStockBanner';
 import { TeamManagement } from '../components/TeamManagement';
 import { ShiftHistory } from '../components/ShiftHistory';
+import { OrdersManagement } from '../components/OrdersManagement';
 import { useUser } from '../contexts/UserContext';
-import { Users, LayoutDashboard, Plus, History } from 'lucide-react';
+import { Users, LayoutDashboard, Plus, History, Package } from 'lucide-react';
 import { IntelligenceFeed } from '../components/IntelligenceFeed';
 import { UpdateBanner } from '../components/UpdateBanner';
 
@@ -96,6 +97,16 @@ export function ShopAdminDashboard({
               <History className="w-3.5 h-3.5" />
               Shift Records
             </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`flex items-center gap-2.5 px-6 py-2.5 rounded-[1.25rem] font-black text-[10px] uppercase tracking-[0.15em] transition-all ${activeTab === 'orders'
+                ? 'bg-green-600 text-[var(--color-text-primary)] shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              Customer Orders
+            </button>
           </div>
 
           <button
@@ -113,6 +124,8 @@ export function ShopAdminDashboard({
         <TeamManagement />
       ) : activeTab === 'shifts' && isShopAdmin() ? (
         <ShiftHistory />
+      ) : activeTab === 'orders' && isShopAdmin() ? (
+        <OrdersManagement />
       ) : (
         <>
           <RevenueCards
