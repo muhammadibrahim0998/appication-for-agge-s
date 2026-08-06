@@ -53,7 +53,18 @@ export default function App() {
   if (!user) return <LoginView />;
 
 
-  // Stats for Navbar
+  // Stats for Navbar & Dashboard
+  const [checkoutOrders, setCheckoutOrders] = useState([]);
+  useEffect(() => {
+    import('./services/api').then(({ default: api }) => {
+      api.get('/checkout/orders')
+        .then(res => {
+          if (res.data?.orders) setCheckoutOrders(res.data.orders);
+        })
+        .catch(() => {});
+    });
+  }, [sales]); // refresh when sales refresh
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -63,10 +74,19 @@ export default function App() {
   const sumSales = (filtered) => filtered.filter(s => s.status !== 'returned').reduce((sum, sale) => sum + sale.totalAmount, 0);
   const sumProfit = (filtered) => filtered.filter(s => s.status !== 'returned').reduce((sum, sale) => sum + (sale.totalProfit || 0), 0);
 
+  // EasyPaisa / Customer checkout order revenue (non-FAILED)
+  const validCheckout = checkoutOrders.filter(o => o.paymentStatus !== 'FAILED');
+  const filterCheckout = (minDate) => validCheckout.filter(o => new Date(o.createdAt) >= minDate);
+  const sumCheckout = (filtered) => filtered.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
   const dailySalesList = filterSales(today);
   const monthlySalesList = filterSales(thisMonth);
   const yearlySalesList = filterSales(thisYear);
+
+  // Combined daily/monthly/yearly (POS + EasyPaisa)
+  const dailySalesTotal = sumSales(dailySalesList) + sumCheckout(filterCheckout(today));
+  const monthlySalesTotal = sumSales(monthlySalesList) + sumCheckout(filterCheckout(thisMonth));
+  const yearlySalesTotal = sumSales(yearlySalesList) + sumCheckout(filterCheckout(thisYear));
 
   // Handlers for Modals
   const handleAddProduct = async (productData) => {
@@ -236,9 +256,9 @@ export default function App() {
         onNewSale={() => openModal("cart")}
         onExport={() => openModal("export")}
         onShiftClick={() => openModal("shift")}
-        dailySales={sumSales(dailySalesList)}
-        monthlySales={sumSales(monthlySalesList)}
-        yearlySales={sumSales(yearlySalesList)}
+        dailySales={dailySalesTotal}
+        monthlySales={monthlySalesTotal}
+        yearlySales={yearlySalesTotal}
         dailyProfit={sumProfit(dailySalesList)}
         monthlyProfit={sumProfit(monthlySalesList)}
         yearlyProfit={sumProfit(yearlySalesList)}
@@ -274,9 +294,9 @@ export default function App() {
                       onDeleteSale={handleDeleteSale}
                       onReturnSale={handleReturnSale}
                       onViewSale={(sale) => openModal("receipt", sale)}
-                      dailySales={sumSales(dailySalesList)}
-                      monthlySales={sumSales(monthlySalesList)}
-                      yearlySales={sumSales(yearlySalesList)}
+                      dailySales={dailySalesTotal}
+                      monthlySales={monthlySalesTotal}
+                      yearlySales={yearlySalesTotal}
                       dailyProfit={sumProfit(dailySalesList)}
                       monthlyProfit={sumProfit(monthlySalesList)}
                       yearlyProfit={sumProfit(yearlySalesList)}

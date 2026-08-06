@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, TrendingUp, AlertTriangle, Box } from 'lucide-react';
+import { Package, TrendingUp, AlertTriangle, Box, Users, ShoppingBag } from 'lucide-react';
 import { StatCard } from './ui/StatCard';
 import { motion } from 'framer-motion';
 
@@ -16,39 +16,59 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
 };
 
-export function AnalyticsCards({ totalProducts, totalValue, lowStockProducts = [], outOfStockProducts = [] }) {
+export function AnalyticsCards({ 
+  totalProducts = 0, 
+  totalValue = 0, 
+  lowStockProducts = [], 
+  outOfStockProducts = [],
+  totalStockUnits = 0,
+  totalCustomers = 0,
+  totalSalesCount = 0
+}) {
   return (
-    /**
-     * FIX: Added 'w-full' and 'items-stretch' to the grid.
-     * This ensures that on smaller screens or during transitions, 
-     * the cards maintain their intended width and don't "pill" (shrink).
-     */
     <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch"
+      className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-stretch"
     >
+      <motion.div variants={itemVariants}>
+        <StatCard
+          title="Registered Customers"
+          value={totalCustomers}
+          icon={Users}
+          color="blue"
+          sub="Shop Customers Count"
+        />
+      </motion.div>
 
       <motion.div variants={itemVariants}>
         <StatCard
-          title="Total Products"
-          value={totalProducts}
+          title="Available Stock"
+          value={`${(totalStockUnits || 0).toLocaleString('en-PK')} Pcs`}
           icon={Package}
-          color="blue"
-          sub="Active in inventory"
+          color="green"
+          sub={`${totalProducts} Products in Catalog`}
+        />
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <StatCard
+          title="Total Sales"
+          value={`${totalSalesCount} Sales`}
+          icon={ShoppingBag}
+          color="orange"
+          sub="Total Orders Completed"
         />
       </motion.div>
 
       <motion.div variants={itemVariants}>
         <StatCard
           title="Inventory Value"
-          value={`Rs. ${totalValue.toLocaleString('en-PK')}`}
+          value={`Rs. ${(totalValue || 0).toLocaleString('en-PK')}`}
           icon={TrendingUp}
-          color="green"
-          sub="Total valuation"
-          trend="up"
-          trendValue="12"
+          color="blue"
+          sub="Total Valuation"
         />
       </motion.div>
 
@@ -58,7 +78,7 @@ export function AnalyticsCards({ totalProducts, totalValue, lowStockProducts = [
           value={lowStockProducts.length}
           icon={AlertTriangle}
           color="yellow"
-          sub={lowStockProducts.length > 0 ? `${lowStockProducts.length} items to check` : "All healthy"}
+          sub={lowStockProducts.length > 0 ? `${lowStockProducts.length} items low` : "Stock Healthy"}
         />
       </motion.div>
 
@@ -68,7 +88,7 @@ export function AnalyticsCards({ totalProducts, totalValue, lowStockProducts = [
           value={outOfStockProducts.length}
           icon={Box}
           color="red"
-          sub={outOfStockProducts.length > 0 ? "Needs immediate restock" : "All set"}
+          sub={outOfStockProducts.length > 0 ? "Restock Needed" : "All Products In Stock"}
         />
       </motion.div>
     </motion.div>

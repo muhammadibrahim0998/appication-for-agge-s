@@ -21,6 +21,18 @@ const authenticateCustomer = async (req, res, next) => {
   }
 };
 
+// ─── GET ALL CUSTOMERS (FOR ADMIN DASHBOARD) ──────────────────────────────────
+router.get('/all', async (req, res) => {
+  try {
+    const { shopId } = req.query;
+    const filter = shopId ? { shopId } : {};
+    const customers = await Customer.find(filter).select('-password');
+    res.json({ success: true, count: customers.length, customers });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ─── REGISTER ────────────────────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
   try {

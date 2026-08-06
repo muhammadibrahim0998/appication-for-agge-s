@@ -341,7 +341,22 @@ function StoreContent({ shopId }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isDesktopOpen, setIsDesktopOpen] = useState(true);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [orderOpen, setOrderOpen] = useState(false); // new state to show orders of user 
+  const [orderOpen, setOrderOpen] = useState(false); // new state to show orders of user
+  const [activeView, setActiveView] = useState('products'); // 'products' or 'dashboard'
+  const [dashStats, setDashStats] = useState({
+    totalProducts: 0,
+    totalStock: 0,
+    totalOrders: 0,
+    cartItemCount: 0,
+    totalSpent: 0,
+    totalCustomers: 0,
+    outOfStock: 0,
+    lowStock: 0,
+    todaySales: 0,
+    monthlySales: 0,
+    yearlySales: 0,
+    totalRevenue: 0,
+  });
 
   const fetchCatalog = async () => {
     setLoading(true);
@@ -355,12 +370,110 @@ function StoreContent({ shopId }) {
         setShop(data.shop);
         setItems(data.items);
         setCategories(data.categories);
+
+        // Compute stats from catalog items
+        const totalStock = (data.items || []).reduce((s, i) => s + (i.stock || 0), 0);
+        const outOfStock = (data.items || []).filter(i => i.stock === 0).length;
+        const lowStock = (data.items || []).filter(i => i.stock > 0 && i.stock <= (i.minStock || 5)).length;
+        setDashStats(prev => ({
+          ...prev,
+          totalProducts: (data.items || []).length,
+          totalStock,
+          outOfStock,
+          lowStock,
+        }));
       }
     } catch (e) {}
     setLoading(false);
   };
 
+  // Fetch customer-specific or admin stats
+  const fetchDashboardStats = async () => {
+    if (!shopId) return;
+    const token = sessionStorage.getItem('nexflow_token');
+    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+    try {
+      if (isAdminUser && token) {
+        // Fetch all three data sources in parallel
+        const [custRes, salesRes, ordersRes] = await Promise.all([
+          fetch(`/api/customers/all?shopId=${shopId}`).catch(() => null),
+          fetch('/api/sales', { headers: authHeaders }).catch(() => null),
+          fetch('/api/checkout/orders', { headers: authHeaders }).catch(() => null),
+        ]);
+
+        // ── Customers ──
+        if (custRes?.ok) {
+          const custData = await custRes.json();
+          setDashStats(prev => ({ ...prev, totalCustomers: custData.count || 0 }));
+        }
+
+        // ── POS Sales ──
+        let posSalesList = [];
+        if (salesRes?.ok) {
+          const salesData = await salesRes.json();
+          posSalesList = Array.isArray(salesData) ? salesData : [];
+        }
+
+        // ── EasyPaisa / Customer Orders ──
+        let checkoutOrders = [];
+        if (ordersRes?.ok) {
+          const ordData = await ordersRes.json();
+          checkoutOrders = Array.isArray(ordData.orders) ? ordData.orders : [];
+        }
+
+        // ── Combine & Compute Revenue ──
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const thisYear = new Date(today.getFullYear(), 0, 1);
+
+        // Valid POS sales (not returned/cancelled)
+        const validPOS = posSalesList.filter(s => s.status !== 'returned' && s.status !== 'cancelled');
+        const posRevenue = (dateFrom) => validPOS
+          .filter(x => new Date(x.saleDate) >= dateFrom)
+          .reduce((sum, x) => sum + (x.totalAmount || 0), 0);
+
+        // Valid customer EasyPaisa orders (PAID or PENDING counted)
+        const validOrders = checkoutOrders.filter(o => o.paymentStatus !== 'FAILED');
+        const orderRevenue = (dateFrom) => validOrders
+          .filter(x => new Date(x.createdAt) >= dateFrom)
+          .reduce((sum, x) => sum + (x.totalAmount || 0), 0);
+
+        const totalPosRevenue = validPOS.reduce((s, x) => s + (x.totalAmount || 0), 0);
+        const totalOrderRevenue = validOrders.reduce((s, x) => s + (x.totalAmount || 0), 0);
+
+        setDashStats(prev => ({
+          ...prev,
+          totalOrders: posSalesList.length + checkoutOrders.length,
+          totalRevenue: totalPosRevenue + totalOrderRevenue,
+          todaySales: posRevenue(today) + orderRevenue(today),
+          monthlySales: posRevenue(thisMonth) + orderRevenue(thisMonth),
+          yearlySales: posRevenue(thisYear) + orderRevenue(thisYear),
+        }));
+
+      } else if (!isAdminUser) {
+        // For customer: fetch their own orders using customerId as token
+        const customerId = customer?._id || customer?.customerId;
+        if (!customerId) return;
+        const ordersRes = await fetch(`/api/checkout/orders`, {
+          headers: { Authorization: `Bearer ${customerId}` }
+        }).catch(() => null);
+        if (ordersRes?.ok) {
+          const ordData = await ordersRes.json();
+          const myOrders = (ordData.orders || []).filter(
+            o => String(o.customerId?._id || o.customerId) === String(customerId)
+          );
+          const spent = myOrders.reduce((s, o) => s + (o.totalAmount || 0), 0);
+          setDashStats(prev => ({ ...prev, totalOrders: myOrders.length, totalSpent: spent }));
+        }
+      }
+    } catch (e) {
+      console.error('Dashboard stats fetch error:', e);
+    }
+  };
+
   useEffect(() => { fetchCatalog(); }, [shopId, search, activeCategory]);
+  useEffect(() => { fetchDashboardStats(); }, [shopId, customer, isAdminUser]);
 
   if (!customer && !user) {
     return <CustomerAuthView shopInfo={shop} />;
@@ -565,14 +678,32 @@ function StoreContent({ shopId }) {
           {/* Navigation Links */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide py-2 space-y-6">
             
+            {/* Dashboard Link */}
+            <div>
+              <p className="px-8 text-[11px] font-bold text-white/30 mb-3 tracking-wider uppercase">Overview</p>
+              <div className="space-y-1">
+                <button
+                  onClick={() => { setActiveView('dashboard'); setIsMobileOpen(false); }}
+                  className={`w-full flex items-center gap-4 group px-3 py-3 mx-4 rounded-2xl text-[13px] font-bold transition-all duration-300 max-w-[192px] ${
+                    activeView === 'dashboard'
+                      ? "bg-[#1B3817] text-white border-t border-t-white/20 border-b-4 border-b-[#12290D] shadow-[0_8px_15px_rgba(0,0,0,0.3)]"
+                      : "text-white/60 hover:text-white hover:bg-[#1B3817] border-t border-t-transparent hover:border-t-white/20 border-b-4 border-b-transparent hover:border-b-[#12290D]"
+                  }`}
+                >
+                  <LayoutDashboard className="w-5 h-5 text-white" />
+                  <span>Dashboard</span>
+                </button>
+              </div>
+            </div>
+
             {/* Products Section */}
             <div>
               <p className="px-8 text-[11px] font-bold text-white/30 mb-3 tracking-wider uppercase">Catalog</p>
               <div className="space-y-1">
                 <button
-                  onClick={() => { setActiveCategory('All'); setIsMobileOpen(false); }}
+                  onClick={() => { setActiveView('products'); setActiveCategory('All'); setIsMobileOpen(false); }}
                   className={`w-full flex items-center gap-4 group px-3 py-3 mx-4 rounded-2xl text-[13px] font-bold transition-all duration-300 max-w-[192px] ${
-                    activeCategory === 'All'
+                    activeView === 'products' && activeCategory === 'All'
                       ? "bg-[#1B3817] text-white border-t border-t-white/20 border-b-4 border-b-[#12290D] shadow-[0_8px_15px_rgba(0,0,0,0.3)]"
                       : "text-white/60 hover:text-white hover:bg-[#1B3817] border-t border-t-transparent hover:border-t-white/20 border-b-4 border-b-transparent hover:border-b-[#12290D]"
                   }`}
@@ -594,9 +725,9 @@ function StoreContent({ shopId }) {
                     return (
                       <button
                         key={cat}
-                        onClick={() => { setActiveCategory(cat); setIsMobileOpen(false); }}
+                        onClick={() => { setActiveView('products'); setActiveCategory(cat); setIsMobileOpen(false); }}
                         className={`w-full flex items-center gap-4 group px-3 py-2.5 mx-4 rounded-xl text-[13px] font-bold transition-all duration-300 max-w-[192px] ${
-                          active
+                          activeView === 'products' && active
                             ? "bg-[#1B3817] text-white border-t border-t-white/20 border-b-4 border-b-[#12290D] shadow-[0_8px_15px_rgba(0,0,0,0.3)]"
                             : "text-white/60 hover:text-white hover:bg-[#1B3817] border-t border-t-transparent hover:border-t-white/20 border-b-4 border-b-transparent hover:border-b-[#12290D]"
                         }`}
@@ -660,28 +791,164 @@ function StoreContent({ shopId }) {
           <main id="main-store-content" className="flex-1 w-full overflow-y-auto p-3 sm:p-4 lg:p-6 bg-[#0f172a] text-white scroll-smooth">
             <div className="max-w-7xl mx-auto space-y-3">
 
-              {/* Compact Banner with Text */}
+              {/* ─── Header Banner (always visible) ─── */}
               <div className="relative bg-gradient-to-r from-[#1E293B] via-[#1B3817] to-[#0f172a] border border-slate-700/60 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 overflow-hidden">
-                {/* Decorative background element */}
                 <div className="absolute -top-4 -right-4 p-4 opacity-[0.03] pointer-events-none">
                   <ShoppingBag className="w-24 h-24 sm:w-32 sm:h-32 text-emerald-400" />
                 </div>
-                
                 <div className="relative z-10 flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[9px] font-black uppercase tracking-widest shrink-0">
                       <Sparkles className="w-3 h-3 text-emerald-400" /> Welcome, {user?.fullName || customer?.fullName || 'User'}
                     </span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${isAdminUser ? 'bg-amber-500/20 border-amber-400/30 text-amber-300' : 'bg-blue-500/20 border-blue-400/30 text-blue-300'}`}>
+                      {isAdminUser ? '🛡 SHOP ADMIN' : '🛒 CUSTOMER'}
+                    </span>
                   </div>
                   <h1 className="text-sm sm:text-base md:text-lg font-black text-white tracking-tight uppercase italic truncate">
-                    Fresh Inventory & Products Catalog
+                    {activeView === 'dashboard'
+                      ? (isAdminUser ? 'Shop Admin Dashboard' : 'My Customer Dashboard')
+                      : 'Fresh Inventory & Products Catalog'}
                   </h1>
                   <p className="text-[10px] sm:text-xs text-slate-400 max-w-xl font-medium line-clamp-1 sm:line-clamp-none">
-                    Browse products, check stock levels, and add items to your cart easily.
+                    {activeView === 'dashboard'
+                      ? (isAdminUser ? 'Overview of your shop performance and statistics.' : 'Your order history, cart summary and spending stats.')
+                      : 'Browse products, check stock levels, and add items to your cart easily.'}
                   </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveView(activeView === 'dashboard' ? 'products' : 'dashboard')}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/80 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow border border-emerald-500/40"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    {activeView === 'dashboard' ? 'View Products' : 'Dashboard'}
+                  </button>
                 </div>
               </div>
 
+              {/* ─── DASHBOARD VIEW ─── */}
+              {activeView === 'dashboard' && (
+                <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+                  {/* ─── SHOP ADMIN DASHBOARD ─── */}
+                  {isAdminUser ? (
+                    <>
+                      {/* Top Stat Cards */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {[
+                          { label: 'Registered Customers', value: dashStats.totalCustomers, icon: '👥', color: 'from-blue-900/60 to-blue-800/40 border-blue-700/60', textColor: 'text-blue-300', sub: 'Shop Accounts' },
+                          { label: 'Total Products', value: dashStats.totalProducts, icon: '📦', color: 'from-emerald-900/60 to-emerald-800/40 border-emerald-700/60', textColor: 'text-emerald-300', sub: 'In Catalog' },
+                          { label: 'Available Stock', value: `${dashStats.totalStock.toLocaleString('en-PK')} Pcs`, icon: '🏪', color: 'from-green-900/60 to-green-800/40 border-green-700/60', textColor: 'text-green-300', sub: 'Total Units' },
+                          { label: 'Total Sales Orders', value: dashStats.totalOrders, icon: '🛒', color: 'from-orange-900/60 to-orange-800/40 border-orange-700/60', textColor: 'text-orange-300', sub: 'All Time' },
+                          { label: 'Low Stock Items', value: dashStats.lowStock, icon: '⚠️', color: 'from-yellow-900/60 to-yellow-800/40 border-yellow-700/60', textColor: 'text-yellow-300', sub: 'Need Attention' },
+                          { label: 'Out of Stock', value: dashStats.outOfStock, icon: '🚫', color: 'from-rose-900/60 to-rose-800/40 border-rose-700/60', textColor: 'text-rose-300', sub: 'Restock Needed' },
+                        ].map(({ label, value, icon, color, textColor, sub }) => (
+                          <div key={label} className={`bg-gradient-to-br ${color} border rounded-2xl p-5 flex flex-col gap-2`}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{label}</span>
+                              <span className="text-xl">{icon}</span>
+                            </div>
+                            <p className={`text-2xl font-black ${textColor} tracking-tight`}>{value}</p>
+                            <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider">{sub}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Revenue Breakdown (Day / Month / Year) */}
+                      <div className="bg-[#1E293B] border border-slate-700/60 rounded-2xl p-5">
+                        <h3 className="text-xs font-black text-white/60 uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <span className="text-emerald-400">📊</span> Revenue Analytics
+                        </h3>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                          {[
+                            { label: "Today (Day)", value: dashStats.todaySales, color: 'text-emerald-400', sub: 'Daily Gross Sales' },
+                            { label: "This Month", value: dashStats.monthlySales, color: 'text-blue-400', sub: 'Monthly Gross Sales' },
+                            { label: "This Year", value: dashStats.yearlySales, color: 'text-violet-400', sub: 'Yearly Gross Sales' },
+                            { label: "Total Revenue", value: dashStats.totalRevenue, color: 'text-amber-400', sub: 'All-Time Cumulative' },
+                          ].map(({ label, value, color, sub }) => (
+                            <div key={label} className="bg-slate-900/60 rounded-xl p-4 border border-slate-700/40">
+                              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">{label}</p>
+                              <p className={`text-xl font-black ${color}`}>PKR {value.toLocaleString('en-PK')}</p>
+                              <p className="text-[9px] text-white/25 uppercase tracking-wider mt-1">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Quick Actions for Admin */}
+                      <div className="bg-[#1E293B] border border-slate-700/60 rounded-2xl p-5">
+                        <h3 className="text-xs font-black text-white/60 uppercase tracking-widest mb-4">⚡ Quick Actions</h3>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            onClick={() => { setActiveView('products'); setActiveCategory('All'); }}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-700/60 hover:bg-emerald-600/80 text-white text-xs font-black uppercase tracking-wider rounded-xl border border-emerald-600/40 transition-all"
+                          >
+                            <Package className="w-4 h-4" /> Browse Products
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* ─── CUSTOMER DASHBOARD ─── */
+                    <>
+                      {/* Customer Stat Cards */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {[
+                          { label: 'Items in Cart', value: cartCount, icon: '🛒', color: 'from-blue-900/60 to-blue-800/40 border-blue-700/60', textColor: 'text-blue-300', sub: 'Ready to Order' },
+                          { label: 'My Orders', value: dashStats.totalOrders, icon: '📋', color: 'from-emerald-900/60 to-emerald-800/40 border-emerald-700/60', textColor: 'text-emerald-300', sub: 'Placed Orders' },
+                          { label: 'Total Spent', value: `PKR ${dashStats.totalSpent.toLocaleString('en-PK')}`, icon: '💰', color: 'from-amber-900/60 to-amber-800/40 border-amber-700/60', textColor: 'text-amber-300', sub: 'All-Time Purchases' },
+                          { label: 'Products Available', value: dashStats.totalProducts, icon: '📦', color: 'from-violet-900/60 to-violet-800/40 border-violet-700/60', textColor: 'text-violet-300', sub: 'In Shop Catalog' },
+                          { label: 'In Stock', value: dashStats.totalStock > 0 ? `${dashStats.totalStock.toLocaleString('en-PK')} Pcs` : '—', icon: '✅', color: 'from-green-900/60 to-green-800/40 border-green-700/60', textColor: 'text-green-300', sub: 'Units Available' },
+                          { label: 'Shop', value: shop?.name || 'My Shop', icon: '🏪', color: 'from-slate-800/80 to-slate-700/60 border-slate-600/60', textColor: 'text-white', sub: shop?.address || 'Your Store' },
+                        ].map(({ label, value, icon, color, textColor, sub }) => (
+                          <div key={label} className={`bg-gradient-to-br ${color} border rounded-2xl p-5 flex flex-col gap-2`}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{label}</span>
+                              <span className="text-xl">{icon}</span>
+                            </div>
+                            <p className={`text-xl sm:text-2xl font-black ${textColor} tracking-tight`}>{value}</p>
+                            <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider">{sub}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Customer Quick Actions */}
+                      <div className="bg-[#1E293B] border border-slate-700/60 rounded-2xl p-5">
+                        <h3 className="text-xs font-black text-white/60 uppercase tracking-widest mb-4">⚡ Quick Actions</h3>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            onClick={() => { setActiveView('products'); setActiveCategory('All'); }}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-700/60 hover:bg-emerald-600/80 text-white text-xs font-black uppercase tracking-wider rounded-xl border border-emerald-600/40 transition-all"
+                          >
+                            <ShoppingBag className="w-4 h-4" /> Browse Products
+                          </button>
+                          {canBuy && (
+                            <>
+                              <button
+                                onClick={() => setCartOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-blue-700/60 hover:bg-blue-600/80 text-white text-xs font-black uppercase tracking-wider rounded-xl border border-blue-600/40 transition-all"
+                              >
+                                <ShoppingCart className="w-4 h-4" /> My Cart ({cartCount})
+                              </button>
+                              <button
+                                onClick={() => setOrderOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-violet-700/60 hover:bg-violet-600/80 text-white text-xs font-black uppercase tracking-wider rounded-xl border border-violet-600/40 transition-all"
+                              >
+                                <Truck className="w-4 h-4" /> My Orders
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ─── PRODUCTS VIEW ─── */}
+              {activeView === 'products' && (
+                <>
               {/* Mobile Search Bar */}
               <div className="relative w-full sm:hidden z-30">
                 <input
@@ -707,7 +974,7 @@ function StoreContent({ shopId }) {
                             className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 transition-colors text-left border-b border-slate-700/50 last:border-0"
                           >
                             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 shrink-0 border border-slate-700">
-                              {item.images?.[0] ? <img src={item.images[0]} className="w-full h-full object-cover" /> : <Egg className="w-5 h-5 m-1.5 text-slate-600" />}
+                              {item.images?.[0] ? <img src={item.images[0]} className="w-full h-full object-cover" /> : <Package className="w-5 h-5 m-1.5 text-slate-600" />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-white text-[11px] truncate uppercase tracking-tight">{item.name}</p>
@@ -798,7 +1065,9 @@ function StoreContent({ shopId }) {
                       </div>
                     </div>
                   ))}
-                </div>
+                 </div>
+              )}
+              </>
               )}
 
             </div>

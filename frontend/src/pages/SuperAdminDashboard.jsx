@@ -5,7 +5,8 @@ import { shopSchema } from '../schemas/shopSchema';
 import api from '../services/api';
 import {
     Store, Plus, Building2, Edit2, Trash2, X, Check,
-    LayoutDashboard, Users, Activity, Eye, EyeOff
+    LayoutDashboard, Users, Activity, Eye, EyeOff,
+    Package, ShoppingBag, DollarSign, TrendingUp, Calendar, BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProducts } from '../contexts/ProductContext';
@@ -26,6 +27,14 @@ export function SuperAdminDashboard() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [showAdminPassword, setShowAdminPassword] = useState(false);
     const { searchTerm } = useProducts();
+
+    const [totalCustomers, setTotalCustomers] = useState(0);
+    const [totalStockUnits, setTotalStockUnits] = useState(0);
+    const [totalSalesCount, setTotalSalesCount] = useState(0);
+    const [totalRevenue, setTotalRevenue] = useState(0);
+    const [dailySalesVal, setDailySalesVal] = useState(0);
+    const [monthlySalesVal, setMonthlySalesVal] = useState(0);
+    const [yearlySalesVal, setYearlySalesVal] = useState(0);
 
     const {
         register,
@@ -59,7 +68,45 @@ export function SuperAdminDashboard() {
     useEffect(() => {
         fetchShops();
         fetchOrders();
+        fetchGlobalStats();
     }, []);
+
+    const fetchGlobalStats = async () => {
+        try {
+            const [custRes, itemsRes, salesRes] = await Promise.all([
+                api.get('/customers/all').catch(() => ({ data: { count: 0 } })),
+                api.get('/items').catch(() => ({ data: [] })),
+                api.get('/sales').catch(() => ({ data: [] }))
+            ]);
+
+            if (custRes.data?.count !== undefined) setTotalCustomers(custRes.data.count);
+            
+            const items = Array.isArray(itemsRes.data) ? itemsRes.data : [];
+            const stockSum = items.reduce((s, i) => s + (i.stock || 0), 0);
+            setTotalStockUnits(stockSum);
+
+            const salesList = Array.isArray(salesRes.data) ? salesRes.data : [];
+            setTotalSalesCount(salesList.length);
+
+            const today = new Date(); today.setHours(0,0,0,0);
+            const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const thisYear = new Date(today.getFullYear(), 0, 1);
+
+            const validSales = salesList.filter(s => s.status !== 'returned');
+            const totalRev = validSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+            setTotalRevenue(totalRev);
+
+            const dayRev = validSales.filter(s => new Date(s.saleDate) >= today).reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+            const monthRev = validSales.filter(s => new Date(s.saleDate) >= thisMonth).reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+            const yearRev = validSales.filter(s => new Date(s.saleDate) >= thisYear).reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+
+            setDailySalesVal(dayRev);
+            setMonthlySalesVal(monthRev);
+            setYearlySalesVal(yearRev);
+        } catch (err) {
+            console.error('Failed to load global stats:', err);
+        }
+    };
 
     const fetchOrders = async () => {
         setOrdersLoading(true);
@@ -275,33 +322,84 @@ export function SuperAdminDashboard() {
 
             {activeTab === 'overview' ? (
                 /* Overview Content (Integrated from SuperAdminOverview) */
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                        <div className="bg-white border border-zinc-100 rounded-xl p-8 shadow-rich flex items-center gap-6 group">
-                            <div className="p-5 bg-green-500/10 rounded-2xl border border-green-500/20 group-hover:scale-110 transition-transform">
-                                <Building2 className="w-8 h-8 text-[var(--color-primary)]" />
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                    {/* Primary Network & Customer Stats */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-rich flex items-center gap-5 group">
+                            <div className="p-4 bg-green-500/10 rounded-2xl border border-green-500/20 group-hover:scale-110 transition-transform">
+                                <Building2 className="w-7 h-7 text-green-600" />
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Network Shops</p>
-                                <h3 className="text-4xl font-black text-zinc-900 mt-1 tracking-tighter">{shops.length}</h3>
+                                <h3 className="text-3xl font-black text-zinc-900 mt-1 tracking-tighter">{shops.length}</h3>
+                                <p className="text-[9px] font-bold text-emerald-600 uppercase mt-0.5">{activeShops} Active Stores</p>
                             </div>
                         </div>
-                        <div className="bg-white border border-zinc-100 rounded-xl p-8 shadow-rich flex items-center gap-6 group">
-                            <div className="p-5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 group-hover:scale-110 transition-transform">
-                                <Activity className="w-8 h-8 text-emerald-500" />
+
+                        <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-rich flex items-center gap-5 group">
+                            <div className="p-4 bg-blue-500/10 rounded-2xl border border-blue-500/20 group-hover:scale-110 transition-transform">
+                                <Users className="w-7 h-7 text-blue-600" />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Active Access</p>
-                                <h3 className="text-4xl font-black text-zinc-900 mt-1 tracking-tighter">{activeShops}</h3>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Total Customers</p>
+                                <h3 className="text-3xl font-black text-zinc-900 mt-1 tracking-tighter">{totalCustomers}</h3>
+                                <p className="text-[9px] font-bold text-blue-600 uppercase mt-0.5">Registered Shop Accounts</p>
                             </div>
                         </div>
-                        <div className="bg-white border border-zinc-100 rounded-xl p-8 shadow-rich flex items-center gap-6 group">
-                            <div className="p-5 bg-rose-500/10 rounded-2xl border border-rose-500/20 group-hover:scale-110 transition-transform">
-                                <Store className="w-8 h-8 text-rose-500" />
+
+                        <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-rich flex items-center gap-5 group">
+                            <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                                <Package className="w-7 h-7 text-emerald-600" />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Suspended Stores</p>
-                                <h3 className="text-4xl font-black text-zinc-900 mt-1 tracking-tighter">{inactiveShops}</h3>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Available Stock</p>
+                                <h3 className="text-3xl font-black text-zinc-900 mt-1 tracking-tighter">{totalStockUnits.toLocaleString('en-PK')} Pcs</h3>
+                                <p className="text-[9px] font-bold text-emerald-600 uppercase mt-0.5">Total Inventory Units</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-rich flex items-center gap-5 group">
+                            <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 group-hover:scale-110 transition-transform">
+                                <ShoppingBag className="w-7 h-7 text-orange-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Total Sales Orders</p>
+                                <h3 className="text-3xl font-black text-zinc-900 mt-1 tracking-tighter">{totalSalesCount}</h3>
+                                <p className="text-[9px] font-bold text-orange-600 uppercase mt-0.5">Completed Transactions</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Sales & Revenue Analytics (Day / Month / Year / Total) */}
+                    <div className="bg-white border border-zinc-100 rounded-[2.5rem] p-8 shadow-rich">
+                        <h3 className="text-xl font-black text-zinc-900 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                            <TrendingUp className="w-6 h-6 text-green-600" />
+                            Revenue Analytics (Day / Month / Year)
+                        </h3>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="p-6 bg-zinc-50/60 rounded-2xl border border-zinc-100">
+                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Today Sales (Day)</span>
+                                <h4 className="text-2xl font-black text-green-600 tracking-tight">PKR {dailySalesVal.toLocaleString('en-PK')}</h4>
+                                <span className="text-[9px] text-zinc-400 font-bold uppercase">Daily Gross Sales</span>
+                            </div>
+
+                            <div className="p-6 bg-zinc-50/60 rounded-2xl border border-zinc-100">
+                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-1">This Month (Month)</span>
+                                <h4 className="text-2xl font-black text-emerald-600 tracking-tight">PKR {monthlySalesVal.toLocaleString('en-PK')}</h4>
+                                <span className="text-[9px] text-zinc-400 font-bold uppercase">Monthly Gross Sales</span>
+                            </div>
+
+                            <div className="p-6 bg-zinc-50/60 rounded-2xl border border-zinc-100">
+                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-1">This Year (Year)</span>
+                                <h4 className="text-2xl font-black text-blue-600 tracking-tight">PKR {yearlySalesVal.toLocaleString('en-PK')}</h4>
+                                <span className="text-[9px] text-zinc-400 font-bold uppercase">Yearly Gross Sales</span>
+                            </div>
+
+                            <div className="p-6 bg-zinc-900 text-white rounded-2xl border border-zinc-900 shadow-lg">
+                                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block mb-1">Total Revenue</span>
+                                <h4 className="text-2xl font-black text-white tracking-tight">PKR {totalRevenue.toLocaleString('en-PK')}</h4>
+                                <span className="text-[9px] text-zinc-400 font-bold uppercase">All-Time Cumulative Sales</span>
                             </div>
                         </div>
                     </div>

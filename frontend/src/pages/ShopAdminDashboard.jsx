@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../services/api';
 import { useProducts } from '../contexts/ProductContext';
 import { AnalyticsCards } from '../components/AnalyticsCards';
 import { RevenueCards } from '../components/RevenueCards';
@@ -24,11 +25,33 @@ export function ShopAdminDashboard({
     sessionStorage.setItem('shopAdminTab', tab);
   };
   const { user, isShopAdmin } = useUser();
+  const [totalCustomers, setTotalCustomers] = useState(0);
 
   const {
     products, loading,
     sales, getStockStatus
   } = useProducts();
+
+  const [checkoutOrders, setCheckoutOrders] = useState([]);
+
+  useEffect(() => {
+    api.get('/customers/all')
+      .then(res => {
+        if (res.data?.count !== undefined) {
+          setTotalCustomers(res.data.count);
+        }
+      })
+      .catch(() => {});
+
+    // Also fetch EasyPaisa/checkout orders for combined revenue
+    api.get('/checkout/orders')
+      .then(res => {
+        if (res.data?.orders) {
+          setCheckoutOrders(res.data.orders);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (loading) {
     return (
@@ -38,8 +61,13 @@ export function ShopAdminDashboard({
     );
   }
 
-  // Calculate top level sums directly from products state for AnalyticsCards
+  // ─── Calculate top level sums ───────────────────────────────────────
   const totalValue = products.reduce((sum, product) => sum + (product.price * product.stock), 0);
+  const totalStockUnits = products.reduce((sum, product) => sum + (product.stock || 0), 0);
+
+  // Combine POS sales + EasyPaisa checkout orders
+  const validOrders = checkoutOrders.filter(o => o.paymentStatus !== 'FAILED');
+  const totalSalesCount = sales.length + validOrders.length;
 
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-8 animate-in fade-in duration-700 bg-[var(--color-background)] min-h-screen text-[var(--color-text-primary)]">
@@ -144,6 +172,9 @@ export function ShopAdminDashboard({
             totalValue={totalValue}
             lowStockProducts={products.filter(p => p.stock > 0 && p.stock <= p.minStock)}
             outOfStockProducts={products.filter(p => p.stock === 0)}
+            totalStockUnits={totalStockUnits}
+            totalCustomers={totalCustomers}
+            totalSalesCount={totalSalesCount}
           />
 
 
