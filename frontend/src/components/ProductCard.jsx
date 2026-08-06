@@ -10,7 +10,7 @@ import { useState, useRef, useEffect } from 'react';
 
 export function ProductCard({ product, onEdit, onDelete, onView }) {
   const { getStockStatus, addToCart } = useProducts();
-  const { isShopAdmin, isSuperAdmin } = useUser();
+  const { isShopAdmin, isSuperAdmin, isCustomer } = useUser();
   const navigate = useNavigate();
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const menuRef = useRef(null);
@@ -170,28 +170,30 @@ export function ProductCard({ product, onEdit, onDelete, onView }) {
 
           {/* Condition Badge */}
           <div className="flex items-center gap-2 bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-100">
-            <Tag className="w-2.5 h-2.5 text-green-" />
+            <Tag className="w-2.5 h-2.5 text-green-600" />
             <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-tight truncate">{status.label}</span>
           </div>
 
           {/* Compact Primary Action */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (product.stock > 0) addToCart(product);
-            }}
-            disabled={product.stock === 0}
-            className={`w-full py-2.5 rounded-lg font-bold text-[11px] uppercase tracking-[0.1em] transition-all duration-300 flex items-center justify-center gap-2
-              ${product.stock > 0
-                ? 'bg-[#2D5A27] hover:bg-[#1B3817] text-white border-t border-b-4 border-[#12290D] shadow-[0_4px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_15px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:border-b-0'
-                : 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'}`}
-          >
-            {product.stock > 0 ? (
-              <><ShoppingCart className="w-3.5 h-3.5" /> Add To Cart</>
-            ) : (
-              'Out of Stock'
-            )}
-          </button>
+          {isCustomer() && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (product.stock > 0) addToCart(product);
+              }}
+              disabled={product.stock === 0}
+              className={`w-full py-2.5 rounded-lg font-bold text-[11px] uppercase tracking-[0.1em] transition-all duration-300 flex items-center justify-center gap-2
+                ${product.stock > 0
+                  ? 'bg-[#2D5A27] hover:bg-[#1B3817] text-white border-t border-b-4 border-[#12290D] shadow-[0_4px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_15px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:border-b-0'
+                  : 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'}`}
+            >
+              {product.stock > 0 ? (
+                <><ShoppingCart className="w-3.5 h-3.5" /> Add To Cart</>
+              ) : (
+                'Out of Stock'
+              )}
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

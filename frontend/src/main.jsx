@@ -13,14 +13,14 @@ import "./index.css";
 createRoot(document.getElementById("root")).render(
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <BrowserRouter>
-      <Routes>
-        {/* Public customer routes - no login needed */}
-        <Route path="/shop" element={<CustomerStorefront />} />
-        <Route path="/shop/:shopId" element={<CustomerStorefront />} />
+      <UserProvider>
+        <Routes>
+          {/* Public customer routes - no login needed */}
+          <Route path="/shop" element={<CustomerStorefront />} />
+          <Route path="/shop/:shopId" element={<CustomerStorefront />} />
 
-        {/* Admin routes - all wrapped with auth providers */}
-        <Route path="/*" element={
-          <UserProvider>
+          {/* Admin routes - all wrapped with auth providers */}
+          <Route path="/*" element={
             <SettingsProvider>
               <ModalProvider>
                 <ProductProvider>
@@ -30,9 +30,9 @@ createRoot(document.getElementById("root")).render(
                 </ProductProvider>
               </ModalProvider>
             </SettingsProvider>
-          </UserProvider>
-        } />
-      </Routes>
+          } />
+        </Routes>
+      </UserProvider>
     </BrowserRouter>
   </ThemeProvider>
 );

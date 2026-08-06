@@ -60,7 +60,7 @@ const RowActions = ({ onEdit, onDelete, onView, isShopAdmin }) => {
 };
 
 export function InventoryTable({ onEdit, onDelete, onView, onExport }) {
-  const { isShopAdmin } = useUser();
+  const { isShopAdmin, isCustomer } = useUser();
   const {
     filteredProducts: products, handleSort, sortConfig, getStockStatus,
     addToCart, currentPage, setCurrentPage, itemsPerPage, setItemsPerPage
@@ -141,7 +141,9 @@ export function InventoryTable({ onEdit, onDelete, onView, onExport }) {
                     </td>
                     <td className="pr-6 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => addToCart(product)} className="p-2 text-zinc-400 hover:text-white hover:bg-green-400 rounded-lg transition-all"><ShoppingCart className="w-4 h-4" /></button>
+                        {isCustomer() && (
+                          <button onClick={() => addToCart(product)} className="p-2 text-zinc-400 hover:text-white hover:bg-green-400 rounded-lg transition-all"><ShoppingCart className="w-4 h-4" /></button>
+                        )}
                         <RowActions onView={() => onView(product)} onEdit={() => onEdit(product)} onDelete={() => onDelete(product)} isShopAdmin={isShopAdmin()} />
                       </div>
                     </td>
@@ -198,10 +200,12 @@ export function InventoryTable({ onEdit, onDelete, onView, onExport }) {
               </div>
               <div className="text-right">
                 <p className="text-[9px] font-bold text-zinc-400 uppercase">Price</p>
-                <p className="text-xs font-black text-green-">Rs.{product.price.toLocaleString()}</p>
+                <p className="text-xs font-black text-green-600">Rs.{product.price.toLocaleString()}</p>
               </div>
             </div>
-            <button onClick={() => addToCart(product)} className="w-full py-2 bg-green-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-600/20 active:scale-95">Add to Cart</button>
+            {isCustomer() && (
+              <button onClick={() => addToCart(product)} className="w-full py-2 bg-green-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-600/20 active:scale-95">Add to Cart</button>
+            )}
           </div>
         ))}
       </div>

@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProducts } from '../contexts/ProductContext';
+import { useUser } from '../contexts/UserContext';
 import { useState, useEffect } from 'react';
 import { ArrowLeft, ShoppingCart, Package, Calendar, Tag, Info, Image as ImageIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -8,6 +9,7 @@ export function ProductDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { products, getStockStatus, addToCart, loading } = useProducts();
+    const { isCustomer } = useUser();
     const [product, setProduct] = useState(null);
     const [selectedImage, setSelectedImage] = useState(0);
 
@@ -146,27 +148,28 @@ export function ProductDetail() {
                     <div className="flex-1"></div>
 
                     {/* Action Base */}
-                    <div className="pt-6 border-t border-[var(--color-border-subtle)] flex flex-col gap-4">
-                        <button
-                            onClick={() => {
-                                if (product.stock > 0) {
-                                    addToCart(product);
-                                    // Optional: add small toast notification or let the hook handle it
-                                }
-                            }}
-                            disabled={product.stock === 0}
-                            className={`w-full py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3
-                ${product.stock > 0
-                                    ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-[0_10px_40px_-10px_rgba(37,99,235,0.5)] hover:scale-[1.02] active:scale-[0.98]'
-                                    : 'bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] cursor-not-allowed'}`}
-                        >
-                            {product.stock > 0 ? (
-                                <><ShoppingCart className="w-5 h-5" /> Add to Active Cart</>
-                            ) : (
-                                'Inventory Empty'
-                            )}
-                        </button>
-                    </div>
+                    {isCustomer() && (
+                        <div className="pt-6 border-t border-[var(--color-border-subtle)] flex flex-col gap-4">
+                            <button
+                                onClick={() => {
+                                    if (product.stock > 0) {
+                                        addToCart(product);
+                                    }
+                                }}
+                                disabled={product.stock === 0}
+                                className={`w-full py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3
+                    ${product.stock > 0
+                                        ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-[0_10px_40px_-10px_rgba(37,99,235,0.5)] hover:scale-[1.02] active:scale-[0.98]'
+                                        : 'bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] cursor-not-allowed'}`}
+                            >
+                                {product.stock > 0 ? (
+                                    <><ShoppingCart className="w-5 h-5" /> Add to Active Cart</>
+                                ) : (
+                                    'Inventory Empty'
+                                )}
+                            </button>
+                        </div>
+                    )}
 
                 </div>
             </div>

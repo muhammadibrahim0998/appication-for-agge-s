@@ -29,7 +29,7 @@ export function Navbar({
   const navigate = useNavigate();
   const location = useLocation();
   const { currentSession } = useShift();
-  const { logout, isSuperAdmin, isShopAdmin } = useUser();
+  const { logout, isSuperAdmin, isShopAdmin, isCustomer } = useUser();
   const { settings } = useSettings();
   const { searchTerm, setSearchTerm } = useProducts();
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -116,14 +116,16 @@ export function Navbar({
 
               <div className="h-8 w-px bg-white/30 mx-1 hidden sm:block"></div>
 
-              <button onClick={onCartClick} className="relative p-3 bg-[#1B3817] hover:bg-[#0C1D08] text-white rounded-full transition-all border-t border-white/20 border-b-4 shadow-[0_8px_15px_rgba(0,0,0,0.3)] hover:scale-110 active:translate-y-[2px] active:border-b-0 active:shadow-inner">
-                <ShoppingCart className="w-5 h-5 shadow-sm" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[10px] font-black h-5.5 w-5.5 rounded-full flex items-center justify-center border-2 border-[#1B3817] shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
+              {isCustomer() && (
+                <button onClick={onCartClick} className="relative p-3 bg-[#1B3817] hover:bg-[#0C1D08] text-white rounded-full transition-all border-t border-white/20 border-b-4 shadow-[0_8px_15px_rgba(0,0,0,0.3)] hover:scale-110 active:translate-y-[2px] active:border-b-0 active:shadow-inner">
+                  <ShoppingCart className="w-5 h-5 shadow-sm" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[10px] font-black h-5.5 w-5.5 rounded-full flex items-center justify-center border-2 border-[#1B3817] shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+              )}
             </>
           )}
 

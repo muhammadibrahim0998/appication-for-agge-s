@@ -56,8 +56,12 @@ export const UserProvider = ({ children }) => {
     return user?.role === 'shop_admin';
   };
 
+  const isCustomer = () => {
+    return user?.role === 'customer';
+  };
+
   return (
-    <UserContext.Provider value={{ user, login, logout, isSuperAdmin, isShopAdmin, loading }}>
+    <UserContext.Provider value={{ user, login, logout, isSuperAdmin, isShopAdmin, isCustomer, loading }}>
       {!loading && children}
     </UserContext.Provider>
   );
@@ -65,6 +69,16 @@ export const UserProvider = ({ children }) => {
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  if (!context) throw new Error('useUser must be used within UserProvider');
+  if (!context) {
+    return {
+      user: null,
+      login: async () => {},
+      logout: async () => {},
+      isSuperAdmin: () => false,
+      isShopAdmin: () => false,
+      isCustomer: () => true,
+      loading: false
+    };
+  }
   return context;
 };

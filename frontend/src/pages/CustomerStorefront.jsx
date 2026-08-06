@@ -10,6 +10,7 @@ import {
   Truck
 } from 'lucide-react';
 import { CustomerAuthProvider, useCustomerAuth } from '../contexts/CustomerAuthContext.jsx';
+import { useUser } from '../contexts/UserContext.jsx';
 import companyLogo from '../logo.jpeg';
 import { CheckoutModal } from '../components/CheckoutModal.jsx';
 import UserOrderModal from '../components/UserOrderModal.jsx';
@@ -316,7 +317,19 @@ function CartDrawer({ currency }) {
 // ─── Main Storefront Content (Dashboard with Green Sidebar & Gray/Green Theme) ─────────
 function StoreContent({ shopId }) {
   const navigate = useNavigate();
-  const { customer, logout, cartCount, setCartOpen, addToCart } = useCustomerAuth();
+  const { customer, logout: customerLogout, cartCount, setCartOpen, addToCart } = useCustomerAuth();
+  const { user, isShopAdmin, isSuperAdmin, logout: userLogout } = useUser();
+  const isAdminUser = 
+    isShopAdmin() || 
+    isSuperAdmin() || 
+    user?.role === 'shop_admin' || 
+    user?.role === 'super_admin' || 
+    customer?.role === 'shop_admin' || 
+    customer?.role === 'super_admin' ||
+    Boolean(customer?.fullName && customer.fullName.toLowerCase().includes('admin')) ||
+    Boolean(customer?.email && customer.email.toLowerCase().includes('admin'));
+
+  const canBuy = !isAdminUser;
   const [shop, setShop] = useState(null);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -349,7 +362,7 @@ function StoreContent({ shopId }) {
 
   useEffect(() => { fetchCatalog(); }, [shopId, search, activeCategory]);
 
-  if (!customer) {
+  if (!customer && !user) {
     return <CustomerAuthView shopInfo={shop} />;
   }
 
@@ -497,17 +510,19 @@ function StoreContent({ shopId }) {
 
           {/* Right Cart & User Badges */}
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setCartOpen(true)}
-              className="relative p-3 bg-[#1B3817] hover:bg-[#0C1D08] text-white rounded-full transition-all border-t border-white/20 border-b-4 shadow-[0_8px_15px_rgba(0,0,0,0.3)] hover:scale-105 active:translate-y-[2px]"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[10px] font-black h-5.5 w-5.5 rounded-full flex items-center justify-center border-2 border-[#1B3817] shadow-md">
-                  {cartCount}
-                </span>
-              )}
-            </button>
+            {canBuy && (
+              <button 
+                onClick={() => setCartOpen(true)}
+                className="relative p-3 bg-[#1B3817] hover:bg-[#0C1D08] text-white rounded-full transition-all border-t border-white/20 border-b-4 shadow-[0_8px_15px_rgba(0,0,0,0.3)] hover:scale-105 active:translate-y-[2px]"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[10px] font-black h-5.5 w-5.5 rounded-full flex items-center justify-center border-2 border-[#1B3817] shadow-md">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -538,8 +553,12 @@ function StoreContent({ shopId }) {
               <UserCircle2 className="w-8 h-8 text-green-300" />
             </div>
             <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-              <span className="text-sm font-bold text-white truncate">{customer.fullName}</span>
-              <span className="text-[10px] font-bold text-green-400 uppercase tracking-widest">Customer</span>
+              <span className="text-sm font-bold text-white truncate">
+                {user?.fullName || customer?.fullName || 'User'}
+              </span>
+              <span className="text-[10px] font-bold text-green-400 uppercase tracking-widest">
+                {isAdminUser ? 'SHOP ADMIN' : 'CUSTOMER'}
+              </span>
             </div>
           </div>
 
@@ -594,33 +613,38 @@ function StoreContent({ shopId }) {
             
 
             {/* Cart Quick Access */}
-            <div>
-              <p className="px-8 text-[11px] font-bold text-white/30 mb-3 tracking-wider uppercase">Cart</p>
-              <div className="space-y-1">
-                <button
-                  onClick={() => { setCartOpen(true); setIsMobileOpen(false); }}
-                  className="w-full flex items-center gap-4 group px-3 py-3 mx-4 rounded-2xl text-[13px] font-bold text-white/60 hover:text-white hover:bg-[#1B3817] border-t border-t-transparent hover:border-t-white/20 border-b-4 border-b-transparent hover:border-b-[#12290D] max-w-[192px]"
-                >
-                  <ShoppingCart className="w-5 h-5 text-white" />
-                  <span>My Cart ({cartCount})</span>
-                </button>
+            {canBuy && (
+              <div>
+                <p className="px-8 text-[11px] font-bold text-white/30 mb-3 tracking-wider uppercase">Cart</p>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => { setCartOpen(true); setIsMobileOpen(false); }}
+                    className="w-full flex items-center gap-4 group px-3 py-3 mx-4 rounded-2xl text-[13px] font-bold text-white/60 hover:text-white hover:bg-[#1B3817] border-t border-t-transparent hover:border-t-white/20 border-b-4 border-b-transparent hover:border-b-[#12290D] max-w-[192px]"
+                  >
+                    <ShoppingCart className="w-5 h-5 text-white" />
+                    <span>My Cart ({cartCount})</span>
+                  </button>
 
-                <button
-                  onClick={() => { setOrderOpen(true); setIsMobileOpen(false); }}
-                  className="w-full flex items-center gap-4 group px-3 py-3 mx-4 rounded-2xl text-[13px] font-bold text-white/60 hover:text-white hover:bg-[#1B3817] border-t border-t-transparent hover:border-t-white/20 border-b-4 border-b-transparent hover:border-b-[#12290D] max-w-[192px]"
-                >
-                  <Truck  className="w-5 h-5 text-white" />
-                  <span>My Oders</span>
-                </button>
+                  <button
+                    onClick={() => { setOrderOpen(true); setIsMobileOpen(false); }}
+                    className="w-full flex items-center gap-4 group px-3 py-3 mx-4 rounded-2xl text-[13px] font-bold text-white/60 hover:text-white hover:bg-[#1B3817] border-t border-t-transparent hover:border-t-white/20 border-b-4 border-b-transparent hover:border-b-[#12290D] max-w-[192px]"
+                  >
+                    <Truck  className="w-5 h-5 text-white" />
+                    <span>My Oders</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
 
 
             {/* Logout Footer */}
             <div className="pb-6 pt-4 border-t border-white/10 mx-4">
               <button
-                onClick={logout}
+                onClick={() => {
+                  if (userLogout) userLogout();
+                  if (customerLogout) customerLogout();
+                }}
                 className="w-full flex items-center gap-4 px-3 py-3 rounded-2xl text-[13px] font-bold text-rose-300 hover:bg-rose-950/40 border border-transparent hover:border-rose-500/20 transition-all"
               >
                 <LogOut className="w-5 h-5 text-rose-400" />
@@ -646,7 +670,7 @@ function StoreContent({ shopId }) {
                 <div className="relative z-10 flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[9px] font-black uppercase tracking-widest shrink-0">
-                      <Sparkles className="w-3 h-3 text-emerald-400" /> Welcome, {customer.fullName}
+                      <Sparkles className="w-3 h-3 text-emerald-400" /> Welcome, {user?.fullName || customer?.fullName || 'User'}
                     </span>
                   </div>
                   <h1 className="text-sm sm:text-base md:text-lg font-black text-white tracking-tight uppercase italic truncate">
@@ -762,13 +786,15 @@ function StoreContent({ shopId }) {
                           <p className="text-emerald-400 font-black text-lg">{currency} {item.price.toLocaleString()}</p>
                         </button>
 
-                        <button
-                          onClick={() => handleAddToCart(item)}
-                          className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B3817] hover:bg-[#12290D] text-white border-t border-t-white/20 border-b-4 border-b-[#12290D] rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all shadow-md active:translate-y-[2px] active:border-b-0"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add to Cart
-                        </button>
+                        {canBuy && (
+                          <button
+                            onClick={() => handleAddToCart(item)}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B3817] hover:bg-[#12290D] text-white border-t border-t-white/20 border-b-4 border-b-[#12290D] rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all shadow-md active:translate-y-[2px] active:border-b-0"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add to Cart
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -816,13 +842,15 @@ function StoreContent({ shopId }) {
                 </div>
               </div>
 
-              <button
-                onClick={() => { handleAddToCart(selectedItem); setSelectedItem(null); }}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-[#1B3817] hover:bg-[#12290D] text-white border-t border-t-white/20 border-b-4 border-b-[#12290D] rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl active:translate-y-[2px]"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                Add to Cart
-              </button>
+              {canBuy && (
+                <button
+                  onClick={() => { handleAddToCart(selectedItem); setSelectedItem(null); }}
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-[#1B3817] hover:bg-[#12290D] text-white border-t border-t-white/20 border-b-4 border-b-[#12290D] rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl active:translate-y-[2px]"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Add to Cart
+                </button>
+              )}
             </div>
           </div>
         </div>
