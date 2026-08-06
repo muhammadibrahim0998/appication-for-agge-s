@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Search, ShoppingBag, MapPin, Phone, Package,
-  ChevronDown, X, Egg, ArrowLeft, ShoppingCart,
+  ChevronDown, X, ArrowLeft, ShoppingCart,
   Plus, Minus, Trash2, User, Lock, Mail, LogOut, Eye, EyeOff,
   CheckCircle, AlertCircle, Sparkles, UserCircle2, Store,
   Layers, ShoppingBasket, Shirt, Home, Watch, Smartphone, Footprints,
   Menu, Filter, HelpCircle, LayoutDashboard
 } from 'lucide-react';
 import { CustomerAuthProvider, useCustomerAuth } from '../contexts/CustomerAuthContext.jsx';
+import companyLogo from '../logo.jpeg';
 import { CheckoutModal } from '../components/CheckoutModal.jsx';
 
 const API_CATALOG = '/api/catalog';
@@ -79,7 +80,7 @@ function CustomerAuthView({ shopInfo }) {
                 {shopInfo?.logoUrl ? (
                   <img src={shopInfo.logoUrl} alt={shopInfo.name} className="w-12 h-12 rounded-xl object-cover" />
                 ) : (
-                  <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-12 h-12 object-contain drop-shadow-md" />
+                  <img src={companyLogo} alt="Yousafzai Agri Foods" className="w-12 h-12 object-cover rounded-xl" />
                 )}
               </div>
             </div>
@@ -429,7 +430,7 @@ function StoreContent({ shopId }) {
                 {shop?.logoUrl ? (
                   <img src={shop.logoUrl} alt={shop.name} className="w-full h-full object-cover" />
                 ) : (
-                  <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-8 h-8 object-contain drop-shadow-md" />
+                  <img src={companyLogo} alt="Yousafzai Agri Foods" className="w-full h-full object-cover" />
                 )}
               </button>
               <div className="min-w-0">
@@ -828,11 +829,11 @@ function ShopsList() {
     <div className="min-h-screen bg-[#0f172a] text-white flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-emerald-500/30 relative overflow-hidden">
       <div className="max-w-4xl w-full z-10 py-12">
         <div className="text-center mb-12 space-y-3">
-          <div className="inline-flex p-5 bg-white rounded-[2rem] mb-2 shadow-2xl">
-            <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Network" className="w-14 h-14 object-contain drop-shadow-xl" />
+          <div className="inline-flex p-2 bg-white rounded-[2rem] mb-2 shadow-2xl">
+            <img src={companyLogo} alt="Yousafzai Agri Foods" className="h-20 w-auto object-contain drop-shadow-xl" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white uppercase italic">
-            EGG STATION NETWORK
+            YOUSAFZAI AGRI FOODS
           </h1>
           <p className="text-emerald-400 font-black uppercase tracking-[0.3em] text-xs">
             Select Your Preferred Store
@@ -856,7 +857,7 @@ function ShopsList() {
                     {s.logoUrl ? (
                       <img src={s.logoUrl} alt={s.name} className="w-10 h-10 object-cover rounded-xl" />
                     ) : (
-                      <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-10 h-10 object-contain drop-shadow-md" />
+                      <img src={companyLogo} alt="Yousafzai Agri Foods" className="w-10 h-10 object-cover rounded-xl" />
                     )}
                   </div>
                   <div>

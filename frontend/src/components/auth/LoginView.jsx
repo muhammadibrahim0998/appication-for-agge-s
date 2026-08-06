@@ -3,8 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '../../schemas/authSchema';
 import { useUser } from '../../contexts/UserContext';
-import { Lock, User, ShieldCheck, AlertCircle, Egg, Eye, EyeOff, ShoppingBag } from 'lucide-react';
+import { Lock, User, ShieldCheck, AlertCircle, Eye, EyeOff, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import companyLogo from '../../logo.jpeg';
 
 export function LoginView() {
   const { login } = useUser();
@@ -35,13 +36,13 @@ export function LoginView() {
 
       <div className="w-full max-w-[360px] z-10 animate-in fade-in zoom-in-95 duration-700 flex flex-col py-4">
 
-        {/* Compact Logo Section - Reduced margins and sizes */}
+        {/* Logo Section */}
         <div className="text-center mb-6">
-          <div className="inline-flex p-3.5 bg-white rounded-2xl shadow-premium mb-3 group hover:scale-105 transition-transform duration-500 border border-[var(--color-border-subtle)]">
-            <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-8 h-8 object-contain drop-shadow-md group-hover:rotate-12 transition-transform" />
+          <div className="inline-flex p-2 bg-white rounded-2xl shadow-premium mb-3 group hover:scale-105 transition-transform duration-500 border border-[var(--color-border-subtle)]">
+            <img src={companyLogo} alt="Yousafzai Agri Foods Logo" className="h-14 w-auto object-contain drop-shadow-md" />
           </div>
-          <p className="text-[var(--color-text-muted)] font-bold tracking-[0.15em] uppercase text-[8px] mt-2 opacity-60">
-            Egg & Poultry Inventory Management
+          <p className="text-[var(--color-text-muted)] font-bold tracking-[0.12em] uppercase text-[8px] mt-2 opacity-70">
+            Yousafzai Agri Foods (Pvt Ltd)
           </p>
         </div>
 
@@ -51,7 +52,7 @@ export function LoginView() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1 bg-[var(--color-primary)] rounded-b-full"></div>
 
           <div className="mb-6 text-center">
-            <h2 className="text-xl font-black text-[var(--color-text-primary)] tracking-tight">Egg Station Login</h2>
+            <h2 className="text-xl font-black text-[var(--color-text-primary)] tracking-tight">Admin Login</h2>
             <p className="text-[var(--color-text-secondary)] text-[11px] font-medium mt-0.5">Sign in to your session</p>
           </div>
 

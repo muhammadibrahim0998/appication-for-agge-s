@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, Download, LogOut, TrendingUp, Menu, Store, Egg } from 'lucide-react';
+import { Search, ShoppingCart, Download, LogOut, TrendingUp, Menu, Store } from 'lucide-react';
 import { useShift } from '../contexts/ShiftContext';
 import { useUser } from '../contexts/UserContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useProducts } from '../contexts/ProductContext';
+import companyLogo from '../logo.jpeg';
 
 export function Navbar({
   isCollapsed,
@@ -61,10 +62,13 @@ export function Navbar({
               {logoUrl ? (
                 <img src={logoUrl} alt={shopName} className="w-full h-full object-cover" />
               ) : (
-                <img src="https://img.icons8.com/emoji/96/egg-emoji.png" alt="Egg Logo" className="w-8 h-8 object-contain drop-shadow-md" />
+                <img src={companyLogo} alt="Yousafzai Agri Foods" className="w-full h-full object-cover" />
               )}
             </div>
-            <h1 className="text-xl font-black tracking-tighter text-white hidden md:block uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">{shopName}</h1>
+            <div className="hidden md:flex flex-col">
+              <h1 className="text-base font-black tracking-tight text-yellow-300 uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-none">YOUSAFZAI</h1>
+              <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest leading-tight">Agri Foods (Pvt Ltd)</span>
+            </div>
           </div>
         </div>
 
