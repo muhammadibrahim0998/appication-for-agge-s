@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import Order from '../models/Order.js';
 import Customer from '../models/Customer.js';
 import crypto from 'crypto';
-
+import { authenticate, requireShopAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 // Initialize stripe with dummy key if not present in env
@@ -109,22 +109,24 @@ router.post('/', authenticateCustomer, async (req, res) => {
   }
 });
 
-// Endpoint to mark order as paid / submit payment proof
+// Endpoint to submit payment proof (EasyPaisa) - stays PENDING until Admin verifies
 router.post('/confirm/:orderId', async (req, res) => {
   try {
     const order = await Order.findById(req.params.orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    
-    order.paymentStatus = 'PAID';
+
+    // Do NOT auto-mark as PAID. Store the proof/reference and keep it PENDING
+    // so the Shop Admin can manually verify and confirm the payment.
     if (req.body.transactionId) {
       order.transactionId = req.body.transactionId;
     }
     if (req.body.paymentProof) {
       order.paymentProof = req.body.paymentProof;
     }
+    // paymentStatus stays 'PENDING' (default) until admin confirms
     await order.save();
 
-    // Clear customer cart
+    // Clear customer cart since the order has been placed
     const customer = await Customer.findById(order.customerId);
     if (customer) {
       customer.cart = [];
@@ -137,14 +139,33 @@ router.post('/confirm/:orderId', async (req, res) => {
   }
 });
 
-// Endpoint to fetch all orders for SuperAdmin / Admin inspection
-router.get('/orders', async (req, res) => {
+// Endpoint for a logged-in customer to view their own orders
+router.get('/my-orders', authenticateCustomer, async (req, res) => {
   try {
-    const { shopId, paymentMethod, paymentStatus } = req.query;
+    const orders = await Order.find({ customerId: req.customer._id })
+      .sort({ createdAt: -1 });
+    res.json({ success: true, orders });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Endpoint to fetch all orders for SuperAdmin / ShopAdmin inspection
+router.get('/orders', authenticate, requireShopAdmin, async (req, res) => {
+  try {
+    const { shopId, paymentMethod, paymentStatus, orderStatus } = req.query;
     const query = {};
-    if (shopId) query.shopId = shopId;
+
+    // Shop Admins can only ever see their own shop's orders
+    if (req.user.role === 'shop_admin') {
+      query.shopId = req.user.shopId;
+    } else if (shopId) {
+      query.shopId = shopId;
+    }
+
     if (paymentMethod) query.paymentMethod = paymentMethod;
     if (paymentStatus) query.paymentStatus = paymentStatus;
+    if (orderStatus) query.orderStatus = orderStatus;
 
     const orders = await Order.find(query)
       .populate('shopId', 'name address')
@@ -157,12 +178,34 @@ router.get('/orders', async (req, res) => {
   }
 });
 
+// Endpoint to fetch a single order (full order view)
+router.get('/order/:orderId', authenticate, requireShopAdmin, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.orderId)
+      .populate('shopId', 'name address')
+      .populate('customerId', 'fullName email phone');
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (req.user.role === 'shop_admin' && String(order.shopId?._id) !== String(req.user.shopId)) {
+      return res.status(403).json({ message: 'Access denied for this order' });
+    }
+
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Endpoint to update payment status or order status
-router.patch('/order/:orderId/status', async (req, res) => {
+router.patch('/order/:orderId/status', authenticate, requireShopAdmin, async (req, res) => {
   try {
     const { paymentStatus, orderStatus } = req.body;
     const order = await Order.findById(req.params.orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (req.user.role === 'shop_admin' && String(order.shopId) !== String(req.user.shopId)) {
+      return res.status(403).json({ message: 'Access denied for this order' });
+    }
 
     if (paymentStatus) order.paymentStatus = paymentStatus;
     if (orderStatus) order.orderStatus = orderStatus;
@@ -175,10 +218,14 @@ router.patch('/order/:orderId/status', async (req, res) => {
 });
 
 // Endpoint to delete payment proof screenshot of an order
-router.delete('/order/:orderId/proof', async (req, res) => {
+router.delete('/order/:orderId/proof', authenticate, requireShopAdmin, async (req, res) => {
   try {
     const order = await Order.findById(req.params.orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (req.user.role === 'shop_admin' && String(order.shopId) !== String(req.user.shopId)) {
+      return res.status(403).json({ message: 'Access denied for this order' });
+    }
 
     order.paymentProof = undefined;
     await order.save();
@@ -189,10 +236,16 @@ router.delete('/order/:orderId/proof', async (req, res) => {
 });
 
 // Endpoint to delete an order completely
-router.delete('/order/:orderId', async (req, res) => {
+router.delete('/order/:orderId', authenticate, requireShopAdmin, async (req, res) => {
   try {
-    const order = await Order.findByIdAndDelete(req.params.orderId);
+    const order = await Order.findById(req.params.orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (req.user.role === 'shop_admin' && String(order.shopId) !== String(req.user.shopId)) {
+      return res.status(403).json({ message: 'Access denied for this order' });
+    }
+
+    await order.deleteOne();
     res.json({ success: true, message: 'Order deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });

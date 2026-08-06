@@ -93,6 +93,13 @@ export function CustomerAuthProvider({ shopId, children }) {
     if (res.ok) setCart([]);
   };
 
+  const getMyOrders = async () => {
+    const res = await fetch('/api/checkout/my-orders', { headers: authHeader });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load orders');
+    return data.orders || [];
+  };
+
   const cartTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -101,7 +108,7 @@ export function CustomerAuthProvider({ shopId, children }) {
       customer, cart, cartOpen, setCartOpen,
       cartTotal, cartCount, authHeader,
       register, login, logout,
-      addToCart, updateCartItem, removeFromCart, clearCart
+      addToCart, updateCartItem, removeFromCart, clearCart,getMyOrders
     }}>
       {children}
     </CustomerAuthContext.Provider>

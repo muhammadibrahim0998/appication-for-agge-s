@@ -175,4 +175,31 @@ export const getSystemUpdates = async () => {
   return response.data;
 };
 
+// --- ORDERS API (Shop Admin / Super Admin) ---
+export const getShopOrders = async (params = {}) => {
+  const response = await api.get('/checkout/orders', { params });
+  return response.data;
+};
+
+export const getOrderById = async (orderId) => {
+  const response = await api.get(`/checkout/order/${orderId}`);
+  return response.data;
+};
+
+export const updateOrderStatus = async (orderId, { paymentStatus, orderStatus }) => {
+  const response = await api.patch(`/checkout/order/${orderId}/status`, { paymentStatus, orderStatus });
+  return response.data;
+};
+
+export const deleteOrder = async (orderId) => {
+  const response = await api.delete(`/checkout/order/${orderId}`);
+  return response.data;
+};
+
+export const deleteOrderProof = async (orderId) => {
+  const response = await api.delete(`/checkout/order/${orderId}/proof`);
+  return response.data;
+};
+
+
 export default api;
